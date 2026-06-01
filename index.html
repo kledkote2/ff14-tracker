@@ -1,0 +1,1684 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FF14 Tracker — こてつ</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0c0f;--bg2:#10141a;--bg3:#161c25;--bg4:#1c2533;
+  --border:#1e2d42;--border2:#2a3f5a;
+  --accent:#3d8bff;--accent2:#1a5cbf;
+  --gold:#c8a84b;--gold2:#8a7030;
+  --green:#2ecc71;--green2:#1a7a44;
+  --red:#e74c3c;--red2:#7a2020;
+  --text:#c8d4e4;--text2:#7a90aa;--text3:#4a5f75;
+  --mono:'Share Tech Mono',monospace;
+  --sans:'Zen Kaku Gothic New',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;min-height:100vh;}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+
+/* HEADER */
+.header{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100;}
+.logo{font-family:var(--mono);font-size:12px;color:var(--accent);letter-spacing:.1em;white-space:nowrap;}
+.logo span{color:var(--gold);}
+.nav{display:flex;gap:3px;flex:1;}
+.nav-btn{background:none;border:1px solid transparent;color:var(--text2);padding:5px 13px;border-radius:4px;cursor:pointer;font-family:var(--sans);font-size:13px;transition:all .12s;white-space:nowrap;}
+.nav-btn:hover{color:var(--text);border-color:var(--border2);background:var(--bg3);}
+.nav-btn.active{color:var(--accent);border-color:var(--accent2);background:#0d1d35;}
+.gp{font-family:var(--mono);font-size:11px;color:var(--text3);white-space:nowrap;}
+.gp b{color:var(--green);}
+
+/* MAIN */
+.main{padding:18px 20px;max-width:1200px;margin:0 auto;}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+
+/* SECTION */
+.sec-title{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--text3);text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:7px;margin-bottom:10px;margin-top:22px;display:flex;justify-content:space-between;align-items:center;}
+.sec-title:first-child{margin-top:0;}
+.sec-cnt{font-size:11px;color:var(--text3);}
+.sec-cnt b{color:var(--green);}
+
+/* FILTER ROW */
+.filter-row{display:flex;gap:5px;margin-bottom:12px;flex-wrap:wrap;align-items:center;}
+.filter-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:4px 11px;border-radius:3px;cursor:pointer;font-size:12px;font-family:var(--sans);transition:all .12s;}
+.filter-btn:hover{border-color:var(--border2);color:var(--text);}
+.filter-btn.active{border-color:var(--accent2);color:var(--accent);background:#0d1d35;}
+.show-done-toggle{margin-left:auto;font-size:12px;color:var(--text3);display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;}
+.show-done-toggle input{accent-color:var(--accent);}
+
+/* TODO */
+.todo-grid{display:flex;flex-direction:column;gap:2px;margin-bottom:6px;}
+.todo-item{display:flex;align-items:flex-start;gap:9px;padding:7px 9px;border-radius:4px;border:1px solid transparent;cursor:pointer;transition:all .12s;user-select:none;}
+.todo-item:hover{background:var(--bg3);border-color:var(--border);}
+.todo-item.done{opacity:.3;}
+.todo-item.done .ti-name{text-decoration:line-through;}
+.chk{width:15px;height:15px;border:1.5px solid var(--border2);border-radius:3px;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;transition:all .12s;}
+.todo-item.done .chk{background:var(--green2);border-color:var(--green);}
+.chk-mark{display:none;color:var(--green);font-size:10px;line-height:1;}
+.todo-item.done .chk-mark{display:block;}
+.ti-name{font-size:13px;color:var(--text);flex:1;}
+.ti-sub{font-size:11px;color:var(--text3);margin-top:1px;}
+.badge{font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:3px;flex-shrink:0;margin-top:2px;}
+.b-weekly{background:#0d1d35;color:var(--accent);border:1px solid var(--accent2);}
+.b-once{background:#0d2a1a;color:var(--green);border:1px solid var(--green2);}
+.b-ongoing{background:#2a1f08;color:var(--gold);border:1px solid var(--gold2);}
+
+/* JOB TABLE */
+.job-tbl{width:100%;border-collapse:collapse;}
+.job-tbl th{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--text3);text-align:left;padding:6px 10px;border-bottom:1px solid var(--border);}
+.job-tbl td{padding:6px 10px;border-bottom:1px solid #0e1520;font-size:13px;vertical-align:middle;}
+.job-tbl tr:hover td{background:var(--bg3);}
+.role-badge{font-size:10px;padding:2px 6px;border-radius:2px;font-family:var(--mono);display:inline-block;}
+.r-tank  {background:#0d1a2a;color:#5b9bd5;border:1px solid #2a4a6a;}
+.r-healer{background:#0d2a1a;color:#5bd58a;border:1px solid #2a6a44;}
+.r-dps   {background:#2a0d0d;color:#d55b5b;border:1px solid #6a2a2a;}
+.lv-bar-wrap{width:70px;height:4px;background:var(--bg4);border-radius:2px;display:inline-block;vertical-align:middle;margin-left:5px;}
+.lv-bar{height:100%;border-radius:2px;transition:width .3s;}
+.lv-gold{background:var(--gold);}
+.lv-grn {background:var(--green);}
+.lv-blu {background:var(--accent);}
+.lv-red {background:var(--red);}
+.lv-num{font-family:var(--mono);font-size:13px;}
+
+/* Tier select */
+.tier-sel{background:var(--bg4);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:3px 6px;border-radius:3px;cursor:pointer;transition:border-color .12s;width:100%;}
+.tier-sel:hover{border-color:var(--border2);}
+.tier-sel:focus{outline:none;border-color:var(--accent2);}
+
+/* Job icon — circle fallback */
+.job-icon-wrap{display:flex;align-items:center;gap:8px;}
+.job-icon{width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;}
+.job-icon-fb{width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0;border:1px solid;}
+
+/* WEAPON TABLE */
+.weapon-tbl{width:100%;border-collapse:collapse;}
+.weapon-tbl th{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--text3);text-align:left;padding:5px 10px;border-bottom:1px solid var(--border);}
+.weapon-tbl td{padding:6px 10px;border-bottom:1px solid #0e1520;font-size:13px;vertical-align:middle;}
+.weapon-tbl tr:hover td{background:var(--bg3);}
+.weapon-tbl tr.done-row{opacity:.35;}
+.status-sel{background:var(--bg4);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:3px 6px;border-radius:3px;cursor:pointer;transition:border-color .12s;}
+.status-sel:hover{border-color:var(--border2);}
+.status-sel:focus{outline:none;border-color:var(--accent2);}
+.note-input{background:none;border:none;color:var(--text2);font-family:var(--sans);font-size:12px;width:100%;outline:none;border-bottom:1px solid transparent;transition:border-color .12s;}
+.note-input:hover,.note-input:focus{border-bottom-color:var(--border2);}
+
+/* GLAMOUR */
+.glamour-section{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:700px){.glamour-section{grid-template-columns:1fr;}}
+.glam-card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.glam-header{background:var(--bg3);border-bottom:1px solid var(--border);padding:9px 13px;display:flex;align-items:center;gap:8px;}
+.glam-job{font-weight:700;font-size:14px;}
+.glam-cnt{font-family:var(--mono);font-size:11px;color:var(--text3);margin-left:auto;}
+.glam-cnt b{color:var(--green);}
+.glam-url{font-family:var(--mono);font-size:10px;color:var(--accent);text-decoration:none;}
+.glam-url:hover{text-decoration:underline;}
+.glam-piece{display:flex;align-items:center;gap:9px;padding:6px 13px;border-bottom:1px solid #0e1520;cursor:pointer;transition:background .1s;}
+.glam-piece:last-child{border-bottom:none;}
+.glam-piece:hover{background:var(--bg3);}
+.glam-piece.done{opacity:.35;}
+.glam-piece.done .gp-name{text-decoration:line-through;}
+.gp-slot{font-family:var(--mono);font-size:10px;color:var(--text3);width:32px;flex-shrink:0;}
+.gp-name{font-size:13px;flex:1;}
+.gp-src{font-size:11px;color:var(--text3);}
+.gp-chk{width:13px;height:13px;border-radius:2px;border:1px solid var(--border2);flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.glam-piece.done .gp-chk{background:var(--green2);border-color:var(--green);}
+.gp-chk-mark{display:none;color:var(--green);font-size:9px;line-height:1;}
+.glam-piece.done .gp-chk-mark{display:block;}
+/* SITES */
+.sites-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;}
+.site-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;text-decoration:none;color:var(--text);display:flex;flex-direction:column;transition:all .15s;cursor:pointer;}
+.site-card:hover{border-color:var(--border2);background:var(--bg3);transform:translateY(-2px);}
+.site-thumb{width:100%;height:100px;object-fit:cover;display:block;background:var(--bg4);}
+.site-thumb-fb{width:100%;height:100px;display:flex;align-items:center;justify-content:center;font-size:32px;background:var(--bg4);flex-shrink:0;}
+.site-body{padding:10px 12px;flex:1;display:flex;flex-direction:column;gap:4px;}
+.site-name{font-size:13px;font-weight:500;color:var(--text);}
+.site-url{font-family:var(--mono);font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.site-desc{font-size:12px;color:var(--text2);line-height:1.5;margin-top:2px;}
+.site-tag{font-family:var(--mono);font-size:10px;padding:1px 6px;border-radius:2px;display:inline-block;margin-top:auto;align-self:flex-start;}
+.st-wiki    {background:#0d1d35;color:var(--accent);border:1px solid var(--accent2);}
+.st-tool    {background:#0d2a1a;color:var(--green);border:1px solid var(--green2);}
+.st-market  {background:#2a1f08;color:var(--gold);border:1px solid var(--gold2);}
+.st-glam    {background:#2a0d2a;color:#c882e8;border:1px solid #7a3a8a;}
+.st-craft   {background:#0d2a2a;color:#5bd5d5;border:1px solid #2a6a6a;}
+.st-hunt    {background:#2a0d0d;color:var(--red);border:1px solid var(--red2);}
+.st-blue    {background:#1a1208;color:#e8c45b;border:1px solid #8a6a2a;}
+.st-end     {background:#1a0a2a;color:#c882e8;border:1px solid #7a3a8a;}
+#modal-body label{display:block;font-family:var(--mono);font-size:11px;color:var(--text3);margin-bottom:4px;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">FF14 <span>TRACKER</span> // こてつ</div>
+  <nav class="nav">
+    <button class="nav-btn active" onclick="switchTab('todo',this)">やることリスト</button>
+    <button class="nav-btn" onclick="switchTab('jobs',this)">ジョブ</button>
+    <button class="nav-btn" onclick="switchTab('weapons',this)">光る武器</button>
+    <button class="nav-btn" onclick="switchTab('glamour',this)">ミラプリ</button>
+    <button class="nav-btn" onclick="switchTab('sites',this)">便利サイト</button>
+    <button class="nav-btn" onclick="switchTab('beast',this)">蛮族</button>
+    <button class="nav-btn" onclick="switchTab('bluemage',this)">青魔法</button>
+    <button class="nav-btn" onclick="switchTab('seals',this)">記章交換</button>
+    <button class="nav-btn" onclick="switchTab('orchestrion',this)">オーケストリオン</button>
+  </nav>
+  <div class="gp" id="gp">—</div>
+  <span id="sync-status" style="font-family:var(--mono);font-size:11px;margin-left:8px"></span>
+  <button onclick="cloudLoad()" style="background:none;border:1px solid var(--border);color:var(--text3);font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:3px;cursor:pointer;margin-left:4px" title="クラウドから読み込み">↓ 読込</button>
+</div>
+
+<div class="main">
+  <div class="tab-content active" id="tab-todo"></div>
+  <div class="tab-content" id="tab-jobs"></div>
+  <div class="tab-content" id="tab-weapons"></div>
+  <div class="tab-content" id="tab-glamour"></div>
+  <div class="tab-content" id="tab-sites"></div>
+  <div class="tab-content" id="tab-beast"></div>
+  <div class="tab-content" id="tab-bluemage"></div>
+  <div class="tab-content" id="tab-seals"></div>
+  <div class="tab-content" id="tab-orchestrion"></div>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay" onclick="if(event.target===this)closeModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center">
+  <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:20px 24px;min-width:320px;max-width:460px;width:90%">
+    <div style="font-size:15px;font-weight:500;margin-bottom:16px;color:var(--text)" id="modal-title">編集</div>
+    <div id="modal-body"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button onclick="closeModal()" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text2);padding:6px 16px;border-radius:4px;cursor:pointer;font-family:var(--sans);font-size:13px">キャンセル</button>
+      <button id="modal-save-btn" style="background:var(--accent2);border:1px solid var(--accent);color:#fff;padding:6px 16px;border-radius:4px;cursor:pointer;font-family:var(--sans);font-size:13px">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== TIER DEFS ====================
+const TIERS = [
+  { v:1, label:'優先',          color:'#e74c3c' },
+  { v:2, label:'ジョブクエ済み', color:'#3d8bff' },
+  { v:3, label:'ジョブクエ未',  color:'#c8a84b' },
+  { v:4, label:'後回し',        color:'#4a5f75' },
+  { v:5, label:'Done',          color:'#2ecc71' },
+];
+
+// ==================== JOB DATA ====================
+// icon: slug for Teamcraft CDN (browser will load fine even if build env can't reach it)
+// abbr: fallback initials for the circle badge
+const JOBS = [
+  // TANK
+  { id:'j_pld', name:'ナイト',        role:'tank',   lv:94,  target:100, icon:'paladin',      abbr:'PLD', tier:4 },
+  { id:'j_war', name:'戦士',          role:'tank',   lv:100, target:100, icon:'warrior',      abbr:'WAR', tier:5 },
+  { id:'j_drk', name:'暗黒騎士',      role:'tank',   lv:90,  target:100, icon:'darkknight',   abbr:'DRK', tier:4 },
+  { id:'j_gnb', name:'ガンブレイカー', role:'tank',   lv:90,  target:100, icon:'gunbreaker',   abbr:'GNB', tier:4 },
+  // HEALER
+  { id:'j_whm', name:'白魔道士',      role:'healer', lv:90,  target:100, icon:'whitemage',    abbr:'WHM', tier:3 },
+  { id:'j_sch', name:'学者',          role:'healer', lv:100, target:100, icon:'scholar',      abbr:'SCH', tier:5 },
+  { id:'j_ast', name:'占星術師',      role:'healer', lv:90,  target:100, icon:'astrologian',  abbr:'AST', tier:3 },
+  { id:'j_sge', name:'賢者',          role:'healer', lv:98,  target:100, icon:'sage',         abbr:'SGE', tier:4 },
+  // DPS
+  { id:'j_drg', name:'竜騎士',        role:'dps',    lv:92,  target:90,  icon:'dragoon',      abbr:'DRG', tier:4 },
+  { id:'j_mnk', name:'モンク',        role:'dps',    lv:81,  target:90,  icon:'monk',         abbr:'MNK', tier:4 },
+  { id:'j_sam', name:'侍',            role:'dps',    lv:80,  target:90,  icon:'samurai',      abbr:'SAM', tier:3 },
+  { id:'j_nin', name:'忍者',          role:'dps',    lv:91,  target:90,  icon:'ninja',        abbr:'NIN', tier:4 },
+  { id:'j_rpr', name:'リーパー',      role:'dps',    lv:89,  target:90,  icon:'reaper',       abbr:'RPR', tier:4 },
+  { id:'j_vpr', name:'ヴァイパー',    role:'dps',    lv:1,   target:90,  icon:'viper',        abbr:'VPR', tier:3 },
+  { id:'j_brd', name:'吟遊詩人',      role:'dps',    lv:90,  target:90,  icon:'bard',         abbr:'BRD', tier:3 },
+  { id:'j_mch', name:'機工士',        role:'dps',    lv:90,  target:90,  icon:'machinist',    abbr:'MCH', tier:5 },
+  { id:'j_dnc', name:'踊り子',        role:'dps',    lv:90,  target:90,  icon:'dancer',       abbr:'DNC', tier:3 },
+  { id:'j_blm', name:'黒魔術士',      role:'dps',    lv:90,  target:80,  icon:'blackmage',    abbr:'BLM', tier:3 },
+  { id:'j_smn', name:'召喚士',        role:'dps',    lv:100, target:90,  icon:'summoner',     abbr:'SMN', tier:5 },
+  { id:'j_rdm', name:'赤魔術士',      role:'dps',    lv:90,  target:80,  icon:'redmage',      abbr:'RDM', tier:3 },
+  { id:'j_pct', name:'ピクトマンサー', role:'dps',   lv:1,   target:90,  icon:'pictomancer',  abbr:'PCT', tier:3 },
+  { id:'j_bst', name:'魔獣使い',      role:'dps',    lv:1,   target:80,  icon:'beastmaster',  abbr:'BST', tier:3 },
+  { id:'j_blu', name:'青魔術士',      role:'dps',    lv:1,   target:70,  icon:'bluemage',     abbr:'BLU', tier:3 },
+];
+
+// Role colors for fallback badge
+const ROLE_COLOR = { tank:'#5b9bd5', healer:'#5bd58a', dps:'#d55b5b' };
+
+// Icon URL candidates — browser will try first, fallback to initials badge via JS
+function iconUrl(slug) {
+  return `https://ffxivteamcraft.com/assets/icons/classjob/${slug}.png`;
+}
+
+// ==================== TODO DATA (初期値) ====================
+const TODOS_DEFAULT = [
+  { id:'t01', cat:'蒐集・マウント', name:'マウント図鑑の現状確認', sub:'未取得リストを可視化する（Gamer\'s Hideout等）', type:'once' },
+  { id:'t02', cat:'蒐集・マウント', name:'ピクシー族クエスト完走', sub:'ポロゴロマウント＆ミニオン / イル・メグ', type:'once' },
+  { id:'t03', cat:'蒐集・マウント', name:'馬マウント確認（四天王・極）', sub:'未取得分をリストアップして周回先を決める', type:'ongoing' },
+  { id:'t04', cat:'蒐集・マウント', name:'7.xファッションチェック参加', sub:'金曜 LT17:00〜 / 外見装備補完も同時に', type:'weekly' },
+  { id:'t05', cat:'蒐集・マウント', name:'ブルーマジック習得状況整理', sub:'7.0追加分含め未習得をリストアップ', type:'once' },
+  { id:'t06', cat:'蒐集・マウント', name:'同盟記章・セントリオ記章交換品確認', sub:'未交換ミニオン・マウントを優先して交換', type:'ongoing' },
+  { id:'t07', cat:'サブストーリー', name:'黄金のレガシー 蛮族クエスト全種解放', sub:'Loporit / イル・メグ / アルカソーダラ等', type:'ongoing' },
+  { id:'t08', cat:'サブストーリー', name:'7.xロールクエスト完走', sub:'タンク・ヒーラー・DPS各ロール', type:'once' },
+  { id:'t09', cat:'サブストーリー', name:'7.xジョブクエスト・特性解放確認', sub:'80以上ジョブで未解放特性がないか点検', type:'once' },
+  { id:'t10', cat:'ID・ルーレット', name:'コンテンツルーレット日課セット', sub:'メインシナリオ / レベリング / 討伐・討滅', type:'weekly' },
+  { id:'t11', cat:'ID・ルーレット', name:'黄金アライアンスレイド週課', sub:'ライト・ヘヴィウォーデン 週上限確認', type:'weekly' },
+  { id:'t12', cat:'ID・ルーレット', name:'7.x装備最低ライン確認（IL710目安）', sub:'各ジョブ装備を確認して優先度を決める', type:'once' },
+  { id:'t13', cat:'クラフター・ギャザラー', name:'7.xギャザラーログ解放状況確認', sub:'採集手帳の未解放アイテムをリストアップ', type:'once' },
+  { id:'t14', cat:'クラフター・ギャザラー', name:'調達品・市場の収支確認', sub:'ギル稼ぎになるクラフトがあるか軽く調査', type:'once' },
+  { id:'t15', cat:'クラフター・ギャザラー', name:'マスターレシピ優先度整理', sub:'外見装備・蒐集に必要なものを先に', type:'ongoing' },
+  { id:'t16', cat:'エンドコンテンツ', name:'ノーマルレイド（黄金）クリア確認', sub:'ストーリー進行に必要なら先に通す', type:'once' },
+  { id:'t17', cat:'エンドコンテンツ', name:'零式は当面スキップ', sub:'装備ギャップが広がりすぎたら再検討', type:'ongoing' },
+];
+
+const WEAPONS = [
+  // TANK
+  { id:'w_pld', job:'ナイト',        role:'tank',   series:'アニマ',       note:'未着手', status:'todo' },
+  { id:'w_war', job:'戦士',          role:'tank',   series:'ファントム',   note:'完了',   status:'done' },
+  { id:'w_drk', job:'暗黒騎士',      role:'tank',   series:'エウレカ',     note:'未着手', status:'todo' },
+  { id:'w_gnb', job:'ガンブレイカー', role:'tank',  series:'レジスタンス', note:'未着手', status:'todo' },
+  // HEALER
+  { id:'w_whm', job:'白魔道士',      role:'healer', series:'レジスタンス', note:'仕掛中', status:'wip'  },
+  { id:'w_sch', job:'学者',          role:'healer', series:'ゾディアック', note:'完了',   status:'done' },
+  { id:'w_ast', job:'占星術師',      role:'healer', series:'アニマ',       note:'未着手', status:'todo' },
+  { id:'w_sge', job:'賢者',          role:'healer', series:'ミハシラ',     note:'未着手', status:'todo' },
+  // MELEE DPS
+  { id:'w_drg', job:'竜騎士',        role:'dps',    series:'アニマ',       note:'未着手', status:'todo' },
+  { id:'w_mnk', job:'モンク',        role:'dps',    series:'エウレカ',     note:'未着手', status:'todo' },
+  { id:'w_sam', job:'侍',            role:'dps',    series:'白虎',         note:'作るだけ / Lv×', status:'todo' },
+  { id:'w_nin', job:'忍者',          role:'dps',    series:'ラーヴァナ',   note:'完了',   status:'done' },
+  { id:'w_rpr', job:'リーパー',      role:'dps',    series:'キンナ',       note:'未着手', status:'todo' },
+  { id:'w_vpr', job:'ヴァイパー',    role:'dps',    series:'—',            note:'未実装', status:'todo' },
+  // RANGED / CASTER DPS
+  { id:'w_brd', job:'吟遊詩人',      role:'dps',    series:'妖精王',       note:'仕掛中 / Lv×', status:'wip' },
+  { id:'w_mch', job:'機工士',        role:'dps',    series:'モグ',         note:'完了',   status:'done' },
+  { id:'w_dnc', job:'踊り子',        role:'dps',    series:'月読',         note:'未着手 / Lv×', status:'todo' },
+  { id:'w_blm', job:'黒魔術士',      role:'dps',    series:'ズルワーン',   note:'未着手', status:'todo' },
+  { id:'w_smn', job:'召喚士',        role:'dps',    series:'ハデス',       note:'未着手', status:'todo' },
+  { id:'w_rdm', job:'赤魔術士',      role:'dps',    series:'朱雀',         note:'未着手', status:'todo' },
+  { id:'w_pct', job:'ピクトマンサー', role:'dps',   series:'—',            note:'未実装', status:'todo' },
+  { id:'w_bst', job:'魔獣使い',      role:'dps',    series:'—',            note:'未実装', status:'todo' },
+  { id:'w_blu', job:'青魔術士',      role:'dps',    series:'—',            note:'未着手', status:'todo' },
+];
+
+const GLAMOURS_DEFAULT = [
+  { id:'g01', job:'黒魔道士',  url:'https://mirapri.com/55904', pieces:[
+    {slot:'頭',name:'アーク・キャスターハット',     color:'デフォルト',  source:'AR:ヴォイドアーク'},
+    {slot:'胴',name:'アラミガンキャスター・コート', color:'デフォルト',  source:''},
+    {slot:'手',name:'アーク・キャスターグローブ',   color:'デフォルト',  source:'AR:ヴォイドアーク'},
+    {slot:'足',name:'アーク・キャスターブーツ',     color:'デフォルト',  source:'AR:ヴォイドアーク'},
+  ]},
+  { id:'g02', job:'詩人',      url:'https://mirapri.com/58569', pieces:[
+    {slot:'頭',name:'タマモカチューシャ',           color:'デフォルト',  source:''},
+    {slot:'胴',name:'ワーグ・レンジャージャケット', color:'デフォルト',  source:'ID:グランコスモス'},
+    {slot:'手',name:'クロウ・オブ・ビースト',       color:'デフォルト',  source:''},
+    {slot:'脚',name:'魔戒弓師の脚・陰',             color:'デフォルト',  source:''},
+    {slot:'足',name:'レベルブーツ',                 color:'デフォルト',  source:''},
+  ]},
+  { id:'g03', job:'踊り子',    url:'https://mirapri.com/60208', pieces:[
+    {slot:'頭',name:'魔戒弓師の頭具・陰',                     color:'コーラルピンク', source:''},
+    {slot:'胴',name:'ホワイトヘンプ・レンジャーヒマティオン', color:'コーラルピンク', source:'※装備未対応'},
+    {slot:'手',name:'エンジェルチャプレット',                 color:'デフォルト',     source:''},
+    {slot:'脚',name:'ロングスカート',                         color:'ジェットブラック',source:''},
+    {slot:'足',name:'サベネアンサンダル',                     color:'デフォルト',     source:''},
+  ]},
+  { id:'g04', job:'占星術師',  url:'https://mirapri.com/61441', pieces:[
+    {slot:'頭',name:'キティセオス・ヒーラーペタソス',         color:'デフォルト',     source:'ID:ヒュポルベレア'},
+    {slot:'胴',name:'ムーンワード・ヒーラートップス',         color:'スートブラック', source:'モブハント戦利品70'},
+    {slot:'手',name:'キュプロヒーラーアームレット',           color:'スートブラック', source:'よろず屋'},
+    {slot:'脚',name:'ウェザード・コンステレーションガスキン', color:'デフォルト',     source:''},
+    {slot:'足',name:'フロンティアパンプス',                   color:'スートブラック', source:'マケボ/製作'},
+    {slot:'首',name:'ウェイファーラー・ネックレス',           color:'デフォルト',     source:''},
+  ]},
+  { id:'g05', job:'機工士',    url:'https://mirapri.com/59920', pieces:[
+    {slot:'頭',name:'ムーンワード・レンジャーハット',                     color:'マーシュグリーン',source:'モブハント戦利品70'},
+    {slot:'胴',name:'レプリカ・スカイパイレーツ・ストライカージャケット', color:'マーシュグリーン',source:'マケボ/製作'},
+    {slot:'手',name:'ムーンワード・レンジャーアームレット',               color:'スノウホワイト',  source:'モブハント戦利品70'},
+    {slot:'脚',name:'アスフォデロース・レンジャーホーズ',                 color:'マーシュグリーン',source:'チェスト持ってる'},
+    {slot:'足',name:'オラクルレギンス',                                   color:'デフォルト',      source:'課金:リーン'},
+  ]},
+  { id:'g06', job:'モンク',    url:'https://mirapri.com/50166', pieces:[
+    {slot:'頭',name:'ウェアウルフヘッド', color:'アイリスパープル',  source:''},
+    {slot:'胴',name:'テンプルシクラスRE', color:'グルームパープル',  source:''},
+    {slot:'手',name:'テンプルグローブRE', color:'グルームパープル',  source:''},
+    {slot:'脚',name:'テンプルガスキンRE', color:'グルームパープル',  source:''},
+    {slot:'足',name:'テンプルブーツRE',   color:'グルームパープル',  source:''},
+  ]},
+];
+
+// ==================== STATE ====================
+let S = JSON.parse(localStorage.getItem('ff14t_v3') || '{}');
+JOBS.forEach(j => { if (S['tier_'+j.id] === undefined) S['tier_'+j.id] = j.tier; });
+WEAPONS.forEach(w => {
+  if (S['ws_'+w.id]  === undefined) S['ws_'+w.id]  = w.status;
+  if (S['wn_'+w.id]  === undefined) S['wn_'+w.id]  = w.note;
+  if (S['wsr_'+w.id] === undefined) S['wsr_'+w.id] = w.series;
+});
+// TODOs: managed entirely in state
+if (!S.todos) S.todos = JSON.parse(JSON.stringify(TODOS_DEFAULT));
+if (!S.todoIdSeq) S.todoIdSeq = 100;
+// GLAMOURs: managed in state
+if (!S.glamours) S.glamours = JSON.parse(JSON.stringify(GLAMOURS_DEFAULT));
+if (!S.glamIdSeq) S.glamIdSeq = 100;
+// Weekly reset tracking: store ISO week string "YYYY-Www"
+function isoWeek() {
+  const d = new Date();
+  d.setHours(0,0,0,0);
+  d.setDate(d.getDate() + 3 - (d.getDay()+6)%7);
+  const w = new Date(d.getFullYear(),0,4);
+  return d.getFullYear()+'W'+String(Math.round(((d-w)/86400000-3+(w.getDay()+6)%7)/7)+1).padStart(2,'0');
+}
+if (S.lastWeek !== isoWeek()) {
+  // auto-reset weekly items on new week
+  S.todos.forEach(t => { if (t.type==='weekly') delete S[t.id]; });
+  S.lastWeek = isoWeek();
+}
+// ==================== CLOUD SYNC ====================
+// デプロイ後にWorkerのURLを設定する
+const WORKER_URL = 'https://ff14-tracker-sync.kote2-89f.workers.dev';
+
+let syncStatus = 'idle'; // idle / syncing / ok / error
+let syncTimer = null;
+
+function save() {
+  localStorage.setItem('ff14t_v3', JSON.stringify(S));
+  // Worker URLが設定されていたら自動クラウド同期（debounce 2秒）
+  if (WORKER_URL) {
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(() => cloudSync(), 2000);
+    setSyncStatus('pending');
+  }
+}
+
+function setSyncStatus(s) {
+  syncStatus = s;
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  const map = {
+    idle:    { text:'', color:'var(--text3)' },
+    pending: { text:'● 保存待ち', color:'var(--gold)' },
+    syncing: { text:'↑ 同期中…', color:'var(--accent)' },
+    ok:      { text:'✓ 同期済み', color:'var(--green)' },
+    error:   { text:'✕ 同期失敗', color:'var(--red)' },
+  };
+  const m = map[s] || map.idle;
+  el.textContent = m.text;
+  el.style.color = m.color;
+}
+
+async function cloudSync() {
+  if (!WORKER_URL) return;
+  setSyncStatus('syncing');
+  try {
+    // Stateをフラットなkey-valueに変換（巨大なtodos/glamoursはJSON文字列化）
+    const payload = {};
+    for (const [k, v] of Object.entries(S)) {
+      payload[k] = typeof v === 'object' ? JSON.stringify(v) : String(v);
+    }
+    const res = await fetch(`${WORKER_URL}/sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error(res.status);
+    setSyncStatus('ok');
+  } catch(e) {
+    setSyncStatus('error');
+  }
+}
+
+async function cloudLoad() {
+  if (!WORKER_URL) return;
+  setSyncStatus('syncing');
+  try {
+    const res = await fetch(`${WORKER_URL}/sync`);
+    const data = await res.json();
+    for (const [k, {value}] of Object.entries(data)) {
+      // JSON文字列かどうか判定して復元
+      try { S[k] = JSON.parse(value); }
+      catch { S[k] = value === 'true' ? true : value === 'false' ? false : value; }
+    }
+    localStorage.setItem('ff14t_v3', JSON.stringify(S));
+    setSyncStatus('ok');
+    renderAll();
+  } catch(e) {
+    setSyncStatus('error');
+  }
+}
+
+function toggle(id) { S[id] = !S[id]; save(); renderAll(); }
+
+// ==================== HELPERS ====================
+let showDoneTodo = true;
+let todoFilter = 'all';
+
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(e => e.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+function renderAll() { renderTodo(); renderJobs(); renderWeapons(); renderGlamour(); renderSites(); renderBeast(); renderBlueMage(); renderSeals(); renderOrchstrion(); renderGP(); }
+
+function renderGP() {
+  const all = [
+    ...S.todos.map(t=>t.id),
+    ...WEAPONS.map(w=>w.id),
+    ...S.glamours.flatMap(g=>g.pieces.map((_,i)=>g.id+'_p'+i)),
+  ];
+  const done = all.filter(id=>S[id]).length;
+  document.getElementById('gp').innerHTML = `DONE <b>${done}</b>/${all.length}`;
+}
+
+// ==================== TODO CRUD ====================
+function todoAdd() {
+  const cats = [...new Set(S.todos.map(t=>t.cat))];
+  const catOpts = cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+  document.getElementById('modal-title').textContent = '項目を追加';
+  document.getElementById('modal-body').innerHTML = `
+    <label>カテゴリ</label>
+    <div style="display:flex;gap:6px;margin-bottom:12px">
+      <select id="m-cat" style="flex:1;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:13px;padding:6px 10px;border-radius:4px">
+        ${catOpts}
+        <option value="__new__">＋ 新しいカテゴリ</option>
+      </select>
+      <input id="m-newcat" placeholder="新カテゴリ名" style="display:none;flex:1;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:13px;padding:6px 10px;border-radius:4px">
+    </div>
+    <label>タスク名</label>
+    <input id="m-name" placeholder="タスク名" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:13px;padding:6px 10px;border-radius:4px;margin-bottom:12px">
+    <label>メモ（任意）</label>
+    <input id="m-sub" placeholder="補足・メモ" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:13px;padding:6px 10px;border-radius:4px;margin-bottom:12px">
+    <label>種別</label>
+    <select id="m-type" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:13px;padding:6px 10px;border-radius:4px;margin-bottom:4px">
+      <option value="once">一回（完了したら消す）</option>
+      <option value="weekly">週次（毎週月曜リセット）</option>
+      <option value="ongoing">継続（繰り返しタスク）</option>
+    </select>`;
+  document.getElementById('m-cat').addEventListener('change', function() {
+    const nci = document.getElementById('m-newcat');
+    nci.style.display = this.value==='__new__' ? 'block' : 'none';
+  });
+  document.getElementById('modal-overlay').style.display = 'flex';
+  document.getElementById('modal-save-btn').onclick = () => {
+    const catSel = document.getElementById('m-cat').value;
+    const cat = catSel==='__new__' ? document.getElementById('m-newcat').value.trim() : catSel;
+    const name = document.getElementById('m-name').value.trim();
+    if (!cat || !name) return;
+    S.todoIdSeq = (S.todoIdSeq||100)+1;
+    S.todos.push({ id:'u'+S.todoIdSeq, cat, name, sub:document.getElementById('m-sub').value.trim(), type:document.getElementById('m-type').value });
+    save(); closeModal(); renderAll();
+  };
+}
+
+function todoEdit(id) {
+  const t = S.todos.find(x=>x.id===id);
+  if (!t) return;
+  const cats = [...new Set(S.todos.map(x=>x.cat))];
+  const catOpts = cats.map(c=>`<option value="${c}"${t.cat===c?' selected':''}>${c}</option>`).join('');
+  document.getElementById('modal-title').textContent = '項目を編集';
+  document.getElementById('modal-body').innerHTML = `
+    <label>カテゴリ</label>
+    <select id="m-cat" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:13px;padding:6px 10px;border-radius:4px;margin-bottom:12px">
+      ${catOpts}
+    </select>
+    <label>タスク名</label>
+    <input id="m-name" value="${t.name.replace(/"/g,'&quot;')}" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:13px;padding:6px 10px;border-radius:4px;margin-bottom:12px">
+    <label>メモ</label>
+    <input id="m-sub" value="${(t.sub||'').replace(/"/g,'&quot;')}" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:13px;padding:6px 10px;border-radius:4px;margin-bottom:12px">
+    <label>種別</label>
+    <select id="m-type" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:13px;padding:6px 10px;border-radius:4px;margin-bottom:12px">
+      <option value="once"${t.type==='once'?' selected':''}>一回</option>
+      <option value="weekly"${t.type==='weekly'?' selected':''}>週次（毎週月曜リセット）</option>
+      <option value="ongoing"${t.type==='ongoing'?' selected':''}>継続</option>
+    </select>
+    <button onclick="todoDelete('${id}')" style="background:#2a0d0d;border:1px solid var(--red2);color:var(--red);padding:5px 14px;border-radius:4px;cursor:pointer;font-family:var(--sans);font-size:12px">この項目を削除</button>`;
+  document.getElementById('modal-overlay').style.display = 'flex';
+  document.getElementById('modal-save-btn').onclick = () => {
+    t.cat  = document.getElementById('m-cat').value;
+    t.name = document.getElementById('m-name').value.trim();
+    t.sub  = document.getElementById('m-sub').value.trim();
+    t.type = document.getElementById('m-type').value;
+    save(); closeModal(); renderAll();
+  };
+}
+
+function todoDelete(id) {
+  S.todos = S.todos.filter(t=>t.id!==id);
+  delete S[id];
+  save(); closeModal(); renderAll();
+}
+
+function weeklyReset() {
+  if (!confirm('週次タスクをすべてリセットしますか？')) return;
+  S.todos.forEach(t => { if (t.type==='weekly') delete S[t.id]; });
+  S.lastWeek = isoWeek();
+  save(); renderAll();
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').style.display = 'none';
+}
+
+// ==================== TODO RENDER ====================
+function renderTodo() {
+  const TODOS = S.todos;
+  const cats = [...new Set(TODOS.map(t=>t.cat))];
+  const weeklyTotal = TODOS.filter(t=>t.type==='weekly').length;
+  const weeklyDone  = TODOS.filter(t=>t.type==='weekly'&&S[t.id]).length;
+
+  const filterRow = `<div class="filter-row">
+    ${['all',...cats].map(f=>`<button class="filter-btn${todoFilter===f?' active':''}" onclick="todoFilter='${f}';renderTodo()">${f==='all'?'すべて':f}</button>`).join('')}
+    <label class="show-done-toggle">
+      <input type="checkbox" ${showDoneTodo?'checked':''} onchange="showDoneTodo=this.checked;renderTodo()"> 完了済みを表示
+    </label>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center">
+    <button class="filter-btn" onclick="todoAdd()" style="color:var(--green);border-color:var(--green2);background:#0d2a1a">＋ 項目を追加</button>
+    <button class="filter-btn" onclick="weeklyReset()" style="color:var(--gold);border-color:var(--gold2);background:#2a1f08">↺ 週次リセット</button>
+    <span style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-left:4px">週次: <b style="color:${weeklyDone===weeklyTotal?'var(--green)':'var(--gold)'}">${weeklyDone}/${weeklyTotal}</b></span>
+  </div>`;
+
+  const filteredCats = todoFilter==='all'?cats:[todoFilter];
+  const sections = filteredCats.map(cat=>{
+    const allCat = TODOS.filter(t=>t.cat===cat);
+    const items  = allCat.filter(t=>showDoneTodo||!S[t.id]);
+    if (!items.length) return '';
+    const done = allCat.filter(t=>S[t.id]).length;
+    const rows = items.map(t=>`
+      <div class="todo-item${S[t.id]?' done':''}">
+        <div class="chk" onclick="toggle('${t.id}')" style="cursor:pointer"><span class="chk-mark">✓</span></div>
+        <div style="flex:1;cursor:pointer" onclick="toggle('${t.id}')">
+          <div class="ti-name">${t.name}</div>
+          ${t.sub?`<div class="ti-sub">${t.sub}</div>`:''}
+        </div>
+        <span class="badge b-${t.type}" style="cursor:pointer" title="クリックで編集" onclick="todoEdit('${t.id}')">${t.type==='weekly'?'週次':t.type==='once'?'一回':'継続'}</span>
+        <button onclick="todoEdit('${t.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 4px;line-height:1;margin-left:2px" title="編集">✎</button>
+      </div>`).join('');
+    return `<div class="sec-title">${cat}<span class="sec-cnt"><b>${done}</b>/${allCat.length}</span></div>
+            <div class="todo-grid">${rows}</div>`;
+  }).join('');
+  document.getElementById('tab-todo').innerHTML = filterRow + sections;
+}
+
+// ==================== JOBS ====================
+function renderJobs() {
+  const roles = ['tank','healer','dps'];
+  const roleLabel = {tank:'TANK', healer:'HEALER', dps:'DPS'};
+  let html = '';
+
+  roles.forEach(role => {
+    const jobs = JOBS.filter(j=>j.role===role);
+    const rows = jobs.map(j => {
+      const tier = S['tier_'+j.id] ?? j.tier;
+      const td = TIERS.find(t=>t.v===tier) || TIERS[2];
+      const pct = Math.min(100, Math.round(j.lv/j.target*100));
+      const lvCls = j.lv>=100?'lv-gold':j.lv>=90?'lv-grn':j.lv>=70?'lv-blu':'lv-red';
+      const rc = ROLE_COLOR[j.role];
+
+      // Icon: img with onerror fallback to initials badge
+      const iconHtml = `
+        <img id="ico_${j.id}" src="${iconUrl(j.icon)}" width="26" height="26"
+          style="border-radius:50%;object-fit:cover;flex-shrink:0;display:block"
+          onerror="this.style.display='none';document.getElementById('fb_${j.id}').style.display='flex'">
+        <div id="fb_${j.id}" class="job-icon-fb" style="display:none;background:${rc}22;color:${rc};border-color:${rc}55">
+          ${j.abbr}
+        </div>`;
+
+      const tierOpts = TIERS.map(t=>
+        `<option value="${t.v}"${tier===t.v?' selected':''}>${t.v}. ${t.label}</option>`
+      ).join('');
+
+      return `<tr>
+        <td>
+          <div class="job-icon-wrap">
+            ${iconHtml}
+            <span>${j.name}</span>
+          </div>
+        </td>
+        <td style="white-space:nowrap">
+          <span class="role-badge r-${j.role}">${roleLabel[j.role]}</span>
+        </td>
+        <td style="white-space:nowrap">
+          <span class="lv-num">${j.lv}</span>
+          <span class="lv-bar-wrap"><span class="lv-bar ${lvCls}" style="width:${pct}%"></span></span>
+        </td>
+        <td style="font-family:var(--mono);font-size:12px;color:var(--text3)">${j.target}</td>
+        <td style="min-width:160px">
+          <select class="tier-sel" style="color:${td.color}"
+            onchange="S['tier_${j.id}']=parseInt(this.value);save();renderJobs()">
+            ${tierOpts}
+          </select>
+        </td>
+      </tr>`;
+    }).join('');
+
+    html += `
+      <div class="sec-title">${roleLabel[role]}</div>
+      <table class="job-tbl" style="margin-bottom:8px">
+        <tr>
+          <th style="width:160px">ジョブ</th>
+          <th style="width:90px">ロール</th>
+          <th style="width:140px">レベル</th>
+          <th style="width:60px">目標</th>
+          <th>Tier</th>
+        </tr>
+        ${rows}
+      </table>`;
+  });
+
+  document.getElementById('tab-jobs').innerHTML = html;
+}
+
+// ==================== WEAPONS ====================
+// sort: 'role'=ロール別(default), 'status'=ステータス別
+let weaponSort = 'role';
+
+function renderWeapons() {
+  const SC = {todo:'color:var(--red)',wip:'color:var(--gold)',done:'color:var(--green)'};
+  const SL = {todo:'未着手',wip:'仕掛中',done:'完了'};
+  // status sort order: wip first, then todo, then done
+  const SO = {wip:0, todo:1, done:2};
+
+  const doneCount = WEAPONS.filter(w=>(S['ws_'+w.id]||w.status)==='done').length;
+
+  const sortBtns = `<div class="filter-row" style="margin-bottom:14px">
+    <span style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-right:4px">並び順:</span>
+    <button class="filter-btn${weaponSort==='role'?' active':''}" onclick="weaponSort='role';renderWeapons()">ロール別</button>
+    <button class="filter-btn${weaponSort==='status'?' active':''}" onclick="weaponSort='status';renderWeapons()">ステータス別</button>
+  </div>`;
+
+  let html = `<div class="sec-title">光る武器進捗<span class="sec-cnt"><b>${doneCount}</b>/${WEAPONS.length} 完了</span></div>
+  ${sortBtns}`;
+
+  function makeRow(w) {
+    const status = S['ws_'+w.id] || w.status;
+    const note   = S['wn_'+w.id]  !== undefined ? S['wn_'+w.id]  : w.note;
+    const series = S['wsr_'+w.id] !== undefined ? S['wsr_'+w.id] : w.series;
+    const isDone = S[w.id]||false;
+    return `<tr class="${isDone?'done-row':''}">
+      <td>
+        <div style="display:flex;align-items:center;gap:7px;cursor:pointer" onclick="toggle('${w.id}')">
+          <div class="chk" style="flex-shrink:0"><span class="chk-mark" style="${isDone?'display:block':''}">✓</span></div>
+          ${w.job}
+        </div>
+      </td>
+      <td>
+        <input class="note-input" style="color:var(--text2);width:120px" value="${series.replace(/"/g,'&quot;')}"
+          onblur="S['wsr_${w.id}']=this.value;save()"
+          onkeydown="if(event.key==='Enter')this.blur()">
+      </td>
+      <td>
+        <select class="status-sel" style="${SC[status]}"
+          onchange="S['ws_${w.id}']=this.value;save();renderWeapons()">
+          ${['todo','wip','done'].map(s=>`<option value="${s}"${status===s?' selected':''}>${SL[s]}</option>`).join('')}
+        </select>
+      </td>
+      <td>
+        <input class="note-input" value="${note.replace(/"/g,'&quot;')}"
+          onblur="S['wn_${w.id}']=this.value;save()"
+          onkeydown="if(event.key==='Enter')this.blur()">
+      </td>
+    </tr>`;
+  }
+
+  if (weaponSort === 'role') {
+    const roleLabel = {tank:'TANK', healer:'HEALER', dps:'DPS'};
+    ['tank','healer','dps'].forEach(role => {
+      const group = WEAPONS.filter(w=>w.role===role);
+      const doneCnt = group.filter(w=>(S['ws_'+w.id]||w.status)==='done').length;
+      html += `
+        <div class="sec-title" style="margin-top:18px">${roleLabel[role]}
+          <span class="sec-cnt"><b>${doneCnt}</b>/${group.length}</span>
+        </div>
+        <table class="weapon-tbl">
+          <tr><th style="width:130px">ジョブ</th><th style="width:130px">シリーズ</th><th style="width:110px">ステータス</th><th>メモ</th></tr>
+          ${group.map(makeRow).join('')}
+        </table>`;
+    });
+  } else {
+    // group by status: wip → todo → done
+    const statusLabel = {wip:'仕掛中', todo:'未着手', done:'完了'};
+    const statusColor = {wip:'var(--gold)', todo:'var(--red)', done:'var(--green)'};
+    ['wip','todo','done'].forEach(st => {
+      const group = WEAPONS.filter(w=>(S['ws_'+w.id]||w.status)===st);
+      if (!group.length) return;
+      html += `
+        <div class="sec-title" style="margin-top:18px;color:${statusColor[st]}">${statusLabel[st]}
+          <span class="sec-cnt" style="color:${statusColor[st]}">${group.length} 件</span>
+        </div>
+        <table class="weapon-tbl">
+          <tr><th style="width:130px">ジョブ</th><th style="width:130px">シリーズ</th><th style="width:110px">ステータス</th><th>メモ</th></tr>
+          ${group.map(makeRow).join('')}
+        </table>`;
+    });
+  }
+
+  document.getElementById('tab-weapons').innerHTML = html;
+}
+
+// ==================== GLAMOUR CRUD ====================
+const SLOTS = ['頭','胴','手','脚','足','首','耳','指（左）','指（右）','腰'];
+
+function glamAddSet() {
+  document.getElementById('modal-title').textContent = 'コーデを追加';
+  document.getElementById('modal-body').innerHTML = `
+    <label>ジョブ名</label>
+    <input id="g-job" placeholder="例: 黒魔道士" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:13px;padding:6px 10px;border-radius:4px;margin-bottom:12px">
+    <label>参照URL（任意）</label>
+    <input id="g-url" placeholder="https://mirapri.com/..." style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:13px;padding:6px 10px;border-radius:4px;margin-bottom:4px">`;
+  document.getElementById('modal-overlay').style.display = 'flex';
+  document.getElementById('modal-save-btn').onclick = () => {
+    const job = document.getElementById('g-job').value.trim();
+    if (!job) return;
+    S.glamIdSeq = (S.glamIdSeq||100)+1;
+    const id = 'gc'+S.glamIdSeq;
+    S.glamours.push({ id, job, url:document.getElementById('g-url').value.trim(), pieces:[] });
+    save(); closeModal(); renderGlamour(); renderGP();
+  };
+}
+
+function glamEditSet(gid) {
+  const g = S.glamours.find(x=>x.id===gid);
+  if (!g) return;
+  document.getElementById('modal-title').textContent = 'コーデを編集';
+  document.getElementById('modal-body').innerHTML = `
+    <label>ジョブ名</label>
+    <input id="g-job" value="${g.job.replace(/"/g,'&quot;')}" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:13px;padding:6px 10px;border-radius:4px;margin-bottom:12px">
+    <label>参照URL（任意）</label>
+    <input id="g-url" value="${(g.url||'').replace(/"/g,'&quot;')}" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:13px;padding:6px 10px;border-radius:4px;margin-bottom:16px">
+    <button onclick="glamDeleteSet('${gid}')" style="background:#2a0d0d;border:1px solid var(--red2);color:var(--red);padding:5px 14px;border-radius:4px;cursor:pointer;font-family:var(--sans);font-size:12px">このコーデを削除</button>`;
+  document.getElementById('modal-overlay').style.display = 'flex';
+  document.getElementById('modal-save-btn').onclick = () => {
+    g.job = document.getElementById('g-job').value.trim();
+    g.url = document.getElementById('g-url').value.trim();
+    save(); closeModal(); renderGlamour();
+  };
+}
+
+function glamDeleteSet(gid) {
+  S.glamours = S.glamours.filter(x=>x.id!==gid);
+  save(); closeModal(); renderGlamour(); renderGP();
+}
+
+function glamAddPiece(gid) {
+  const slotOpts = SLOTS.map(s=>`<option value="${s}">${s}</option>`).join('');
+  document.getElementById('modal-title').textContent = '部位を追加';
+  document.getElementById('modal-body').innerHTML = `
+    <label>部位</label>
+    <select id="gp-slot" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:13px;padding:6px 10px;border-radius:4px;margin-bottom:12px">${slotOpts}</select>
+    <label>装備名</label>
+    <input id="gp-name" placeholder="例: アーク・キャスターハット" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:13px;padding:6px 10px;border-radius:4px;margin-bottom:12px">
+    <label>染色（任意）</label>
+    <input id="gp-color" placeholder="例: ジェットブラック" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:13px;padding:6px 10px;border-radius:4px;margin-bottom:12px">
+    <label>入手先（任意）</label>
+    <input id="gp-src" placeholder="例: AR:ヴォイドアーク" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:13px;padding:6px 10px;border-radius:4px;margin-bottom:4px">`;
+  document.getElementById('modal-overlay').style.display = 'flex';
+  document.getElementById('modal-save-btn').onclick = () => {
+    const name = document.getElementById('gp-name').value.trim();
+    if (!name) return;
+    const g = S.glamours.find(x=>x.id===gid);
+    g.pieces.push({
+      slot:  document.getElementById('gp-slot').value,
+      name,
+      color: document.getElementById('gp-color').value.trim() || 'デフォルト',
+      source:document.getElementById('gp-src').value.trim(),
+    });
+    save(); closeModal(); renderGlamour(); renderGP();
+  };
+}
+
+function glamEditPiece(gid, pi) {
+  const g = S.glamours.find(x=>x.id===gid);
+  const p = g.pieces[pi];
+  const slotOpts = SLOTS.map(s=>`<option value="${s}"${p.slot===s?' selected':''}>${s}</option>`).join('');
+  document.getElementById('modal-title').textContent = '部位を編集';
+  document.getElementById('modal-body').innerHTML = `
+    <label>部位</label>
+    <select id="gp-slot" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:13px;padding:6px 10px;border-radius:4px;margin-bottom:12px">${slotOpts}</select>
+    <label>装備名</label>
+    <input id="gp-name" value="${p.name.replace(/"/g,'&quot;')}" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:13px;padding:6px 10px;border-radius:4px;margin-bottom:12px">
+    <label>染色</label>
+    <input id="gp-color" value="${(p.color||'デフォルト').replace(/"/g,'&quot;')}" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:13px;padding:6px 10px;border-radius:4px;margin-bottom:12px">
+    <label>入手先</label>
+    <input id="gp-src" value="${(p.source||'').replace(/"/g,'&quot;')}" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:13px;padding:6px 10px;border-radius:4px;margin-bottom:16px">
+    <button onclick="glamDeletePiece('${gid}',${pi})" style="background:#2a0d0d;border:1px solid var(--red2);color:var(--red);padding:5px 14px;border-radius:4px;cursor:pointer;font-family:var(--sans);font-size:12px">この部位を削除</button>`;
+  document.getElementById('modal-overlay').style.display = 'flex';
+  document.getElementById('modal-save-btn').onclick = () => {
+    p.slot   = document.getElementById('gp-slot').value;
+    p.name   = document.getElementById('gp-name').value.trim();
+    p.color  = document.getElementById('gp-color').value.trim() || 'デフォルト';
+    p.source = document.getElementById('gp-src').value.trim();
+    save(); closeModal(); renderGlamour();
+  };
+}
+
+function glamDeletePiece(gid, pi) {
+  const g = S.glamours.find(x=>x.id===gid);
+  // remove check state for this piece and re-index subsequent pieces
+  const oldKey = gid+'_p'+pi;
+  delete S[oldKey];
+  // shift down higher indices
+  for (let i=pi+1; i<g.pieces.length; i++) {
+    S[gid+'_p'+(i-1)] = S[gid+'_p'+i];
+    delete S[gid+'_p'+i];
+  }
+  g.pieces.splice(pi,1);
+  save(); closeModal(); renderGlamour(); renderGP();
+}
+
+// ==================== GLAMOUR RENDER ====================
+function renderGlamour() {
+  const addBtn = `<div style="margin-bottom:14px">
+    <button class="filter-btn" onclick="glamAddSet()" style="color:var(--green);border-color:var(--green2);background:#0d2a1a">＋ コーデを追加</button>
+  </div>`;
+
+  const cards = S.glamours.map(g=>{
+    const dp = g.pieces.filter((_,i)=>S[g.id+'_p'+i]).length;
+    const pieces = g.pieces.map((p,i)=>`
+      <div class="glam-piece${S[g.id+'_p'+i]?' done':''}">
+        <div class="gp-chk" onclick="toggle('${g.id}_p${i}')" style="cursor:pointer"><span class="gp-chk-mark">✓</span></div>
+        <span class="gp-slot" style="cursor:pointer" onclick="toggle('${g.id}_p${i}')">${p.slot}</span>
+        <div style="flex:1;cursor:pointer" onclick="toggle('${g.id}_p${i}')">
+          <div class="gp-name">${p.name}</div>
+          ${p.color!=='デフォルト'||p.source?`<div class="gp-src">${[p.color!=='デフォルト'?p.color:'',p.source||''].filter(Boolean).join(' / ')}</div>`:''}
+        </div>
+        <button onclick="glamEditPiece('${g.id}',${i})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:0 4px" title="部位を編集">✎</button>
+      </div>`).join('');
+
+    return `<div class="glam-card">
+      <div class="glam-header">
+        <span class="glam-job">${g.job}</span>
+        <span class="glam-cnt"><b>${dp}</b>/${g.pieces.length}</span>
+        <button onclick="glamAddPiece('${g.id}')" style="background:none;border:none;color:var(--green);cursor:pointer;font-size:18px;line-height:1;padding:0 4px" title="部位を追加">＋</button>
+        <button onclick="glamEditSet('${g.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:0 4px" title="コーデを編集">✎</button>
+        ${g.url?`<a class="glam-url" href="${g.url}" target="_blank" onclick="event.stopPropagation()">↗ 参照</a>`:''}
+      </div>
+      <div>${pieces}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('tab-glamour').innerHTML = addBtn +
+    `<div class="glamour-section">${cards}</div>`;
+}
+
+// ==================== SITES ====================
+const SITES = [
+  // --- 攻略・Wiki ---
+  { cat:'攻略・Wiki', name:'FF14まとめった', url:'https://ff14.gamedb.info/', tag:'wiki',
+    emoji:'📖', desc:'国内最大の攻略まとめwiki。ID・ボス・コンテンツ解説が充実' },
+  { cat:'攻略・Wiki', name:'コンソールゲームズwiki', url:'https://ffxiv.consolegameswiki.com/', tag:'wiki',
+    emoji:'📚', desc:'英語wikiだが情報が最速・最詳細。装備・コンテンツ全般' },
+  { cat:'攻略・Wiki', name:'Gamer Escape wiki', url:'https://ffxiv.gamerescape.com/', tag:'wiki',
+    emoji:'🗺️', desc:'英語。アイテム・NPC・ロケーション検索に強い' },
+  { cat:'攻略・Wiki', name:'The Balance (job guide)', url:'https://www.thebalanceffxiv.com/', tag:'wiki',
+    emoji:'⚖️', desc:'ジョブ最適解・ビスメルドまとめ。エンドコンテンツ勢の聖典' },
+  { cat:'攻略・Wiki', name:'むーむーのネタ帳', url:'https://ff14moomoo.com/', tag:'wiki',
+    emoji:'🐄', desc:'高難度コンテンツ・サブコンテンツの攻略まとめ。零式・絶の予習に' },
+
+  // --- アイテム・DB ---
+  { cat:'アイテム・DB', name:'Garland Tools', url:'https://www.garlandtools.org/', tag:'tool',
+    emoji:'🔧', desc:'アイテムDB・採集ノードタイマー・クラフトリスト。復帰後まず確認' },
+  { cat:'アイテム・DB', name:'FFXIV Teamcraft', url:'https://ffxivteamcraft.com/', tag:'craft',
+    emoji:'⚒️', desc:'クラフト/ギャザラー総合ツール。製作リスト共有・アラーム設定' },
+  { cat:'アイテム・DB', name:'Universalis', url:'https://universalis.app/', tag:'market',
+    emoji:'📈', desc:'マーケットボード価格履歴。ギル稼ぎ品の相場確認に必須' },
+  { cat:'アイテム・DB', name:'FFXIV Collect', url:'https://ffxivcollect.com/', tag:'tool',
+    emoji:'🏆', desc:'マウント・ミニオン・カード・称号の収集管理。Lodestone連携で進捗自動反映' },
+
+  // --- トレジャーハント ---
+  { cat:'トレジャーハント', name:'星屑の杖 (トレハン地図ツール)', url:'https://harvestasya.com/stardustrod/', tag:'hunt',
+    emoji:'💎', desc:'宝の地図の出現エリア・座標をビジュアル表示。パーティトレハンの事前確認に' },
+
+  // --- モブハント ---
+  { cat:'モブハント', name:'FFXIV Hunts Path Finder', url:'https://www.xivdaily.com/ja/hunts/dt', tag:'hunt',
+    emoji:'🗺️', desc:'黄金のレガシー(DT)モブのpop場所を地図表示。効率ルートを自動生成' },
+  { cat:'モブハント', name:'Bモブどこにいんの検索', url:'https://www.mouse-e.com/mob-search/', tag:'hunt',
+    emoji:'🔍', desc:'BモブのエリアとXY座標をサクッと検索できる軽量ツール' },
+  { cat:'モブハント', name:'FFXIV the Hunt', url:'https://ffxiv-the-hunt.net/ja', tag:'hunt',
+    emoji:'🗡️', desc:'日本語対応。Sモブのpopタイマー・報告機能付きコミュニティツール' },
+  { cat:'モブハント', name:'Faloop!', url:'https://faloop.app/', tag:'hunt',
+    emoji:'🔔', desc:'SモブのDiscord連携通知ツール。worldごとのpop報告をリアルタイムで受信' },
+
+  // --- ギャザラー・クラフター ---
+  { cat:'ギャザラー・クラフター', name:'猫はおなかがすいた (FF14 Angler)', url:'https://jp.ff14angler.com/', tag:'craft',
+    emoji:'🐱', desc:'漁師専門DB。魚の釣れる場所・餌・時間・天候条件をすべて網羅' },
+  { cat:'ギャザラー・クラフター', name:'FFXIV Fish Tracker', url:'https://ff14fish.carbuncleplushy.com/', tag:'craft',
+    emoji:'🐟', desc:'リアルタイムで今釣れる魚・次に釣れる魚をカウントダウン表示' },
+  { cat:'ギャザラー・クラフター', name:'FF14Restanet', url:'https://ff14restanet.com/', tag:'craft',
+    emoji:'🍽️', desc:'料理・薬品レシピDB。料理師・錬金術師メインのクラフトリスト管理に' },
+  { cat:'ギャザラー・クラフター', name:'FFXIV Clock', url:'https://www.ffxivclock.com/', tag:'craft',
+    emoji:'⏰', desc:'採集ノード出現時刻・アラーム。ギャザラー作業時に常時表示推奨' },
+
+  // --- ハウジング・ミラプリ ---
+  { cat:'ハウジング・ミラプリ', name:'FF14ハウジング', url:'https://ff14housing.com/', tag:'glam',
+    emoji:'🏠', desc:'家具・ハウジング用品のDB。部屋コーデのアイデア出しにも' },
+  { cat:'ハウジング・ミラプリ', name:'カララントどこで売ってますか？', url:'https://a-head.cc/FF14_dye_list/', tag:'glam',
+    emoji:'🎨', desc:'染料の入手場所一覧。ミラプリの染色前に購入先を一発確認' },
+  { cat:'ハウジング・ミラプリ', name:'MIRAPRI SNAP', url:'https://mirapri.com/', tag:'glam',
+    emoji:'👗', desc:'プレイヤー投稿ミラプリ一覧。スプレッドシートの参照先もここ' },
+  { cat:'ハウジング・ミラプリ', name:'MirapriLife', url:'https://ff14-fc.com/', tag:'glam',
+    emoji:'✨', desc:'装備ごとの高画質画像・染色例・入手方法を詳細掲載' },
+  { cat:'ハウジング・ミラプリ', name:'Eorzea Collection', url:'https://ffxivcollection.com/', tag:'glam',
+    emoji:'👘', desc:'英語版ミラプリSNAP。海外プレイヤーの垢抜けたコーデが多い' },
+
+  // --- 天候・蒐集 ---
+  { cat:'天候・蒐集', name:'Ashtender (Tails of the Fox)', url:'https://ashtender.com/ffxiv/tails', tag:'hunt',
+    emoji:'🦊', desc:'クロの空想帳（スカイウォッチング）の天候・時間条件チェッカー' },
+  { cat:'天候・蒐集', name:'Eorzea Weather', url:'https://eorzea-weather.info/', tag:'hunt',
+    emoji:'🌤️', desc:'エリア別天候予報・天候カレンダー。日本語対応で見やすい' },
+  { cat:'天候・蒐集', name:'Heavenswhere', url:'https://heavenswhere.com/', tag:'hunt',
+    emoji:'📍', desc:'蒐集品・採集ノードのマップ座標一覧。エモート条件付き蒐集品に便利' },
+
+  // --- 高難度・解析 ---
+  { cat:'高難度・解析', name:'FFLogs', url:'https://ja.fflogs.com/', tag:'end',
+    emoji:'📊', desc:'レイドDPSログ解析。零式・絶のパーセンタイルランキング' },
+  { cat:'高難度・解析', name:'xivanalysis', url:'https://xivanalysis.com/', tag:'end',
+    emoji:'🔬', desc:'FFLogsのログを読み込んで自分の立ち回りミスを自動で指摘してくれる' },
+  { cat:'高難度・解析', name:'xivsim', url:'https://www.xivsim.com/game/', tag:'end',
+    emoji:'⚙️', desc:'ジョブ回転シミュレーター。スキル回しの最適化・DPS計算に' },
+  { cat:'高難度・解析', name:'FF14 Share Sync Tactics', url:'https://matora.xyz/ff14sst', tag:'end',
+    emoji:'📋', desc:'マクロ・タクティクス共有ツール。固定練習前の予習資料置き場として使える' },
+
+  // --- ファッションチェック ---
+  { cat:'ファッションチェック', name:'ファッションチェック攻略 (Game8)', url:'https://game8.jp/ff14/360622', tag:'glam',
+    emoji:'🎽', desc:'毎週金曜LT17:00〜の条件と推奨装備まとめ' },
+
+  // --- 青魔道士 ---
+  { cat:'青魔道士', name:'青魔法習得攻略 (FF14まとめった)', url:'https://ff14.gamedb.info/wiki/%E9%9D%92%E9%AD%94%E6%B3%95%E4%B8%80%E8%A6%A7', tag:'blue',
+    emoji:'🐸', desc:'全青魔法の習得場所・条件一覧' },
+  { cat:'青魔道士', name:'マスクカーニバル攻略 (FF14まとめった)', url:'https://ff14.gamedb.info/wiki/%E3%83%9E%E3%82%B9%E3%82%AF%E3%82%AB%E3%83%BC%E3%83%8B%E3%83%90%E3%83%AB', tag:'blue',
+    emoji:'🎭', desc:'全30ステージのソロ攻略メモ' },
+];
+
+let siteFilter = 'all';
+
+function renderSites() {
+  const cats = [...new Set(SITES.map(s=>s.cat))];
+  const tagClass = {wiki:'st-wiki',tool:'st-tool',market:'st-market',glam:'st-glam',craft:'st-craft',hunt:'st-hunt',blue:'st-blue',end:'st-end'};
+  const tagLabel = {wiki:'WIKI',tool:'TOOL',market:'MARKET',glam:'GLAM',craft:'CRAFT',hunt:'HUNT',blue:'BLUE MAGE',end:'HIGH-END'};
+
+  const filters = `<div class="filter-row" style="margin-bottom:18px">
+    ${['all',...cats].map(c=>`<button class="filter-btn${siteFilter===c?' active':''}" onclick="siteFilter='${c}';renderSites()">${c==='all'?'すべて':c}</button>`).join('')}
+  </div>`;
+
+  const shown = siteFilter==='all' ? SITES : SITES.filter(s=>s.cat===siteFilter);
+
+  // group by cat when showing all
+  let cardsHtml = '';
+  if (siteFilter === 'all') {
+    cats.forEach(cat => {
+      const group = shown.filter(s=>s.cat===cat);
+      cardsHtml += `<div class="sec-title" style="margin-top:20px">${cat}</div>
+        <div class="sites-grid" style="margin-bottom:8px">
+          ${group.map(s=>siteCard(s,tagClass,tagLabel)).join('')}
+        </div>`;
+    });
+  } else {
+    cardsHtml = `<div class="sites-grid">${shown.map(s=>siteCard(s,tagClass,tagLabel)).join('')}</div>`;
+  }
+
+  document.getElementById('tab-sites').innerHTML = filters + cardsHtml;
+}
+
+function siteCard(s, tagClass, tagLabel) {
+  // Use Google favicon service for thumbnails (works from any browser)
+  const favicon = `https://www.google.com/s2/favicons?sz=64&domain_url=${encodeURIComponent(s.url)}`;
+  return `<a class="site-card" href="${s.url}" target="_blank" rel="noopener">
+    <div class="site-thumb-fb" style="position:relative">
+      <span style="font-size:36px">${s.emoji}</span>
+      <img src="${favicon}" alt="" style="position:absolute;bottom:6px;right:8px;width:20px;height:20px;border-radius:4px;background:var(--bg2)" onerror="this.style.display='none'">
+    </div>
+    <div class="site-body">
+      <div class="site-name">${s.name}</div>
+      <div class="site-url">${s.url.replace('https://','').replace('http://','')}</div>
+      <div class="site-desc">${s.desc}</div>
+      <span class="site-tag ${tagClass[s.tag]}">${tagLabel[s.tag]}</span>
+    </div>
+  </a>`;
+}
+
+// ==================== BEASTMEN ====================
+const RANKS = ['未解放','中立','友好','信頼','献身','名誉','誓約','誓約★'];
+const RANK_COLOR = {
+  '未解放':'var(--text3)', '中立':'#5b9bd5', '友好':'#5bd58a',
+  '信頼':'#c8a84b', '献身':'#e87c3e', '名誉':'#c882e8', '誓約':'var(--green)', '誓約★':'#f0d060'
+};
+
+// 拡張別 全蛮族データ
+// type: battle/craft/gather
+const BEASTS_DEFAULT = [
+  // 新生 2.x
+  { id:'b_amr', name:'アマルジャ族',  exp:'新生',    patch:'2.0', type:'battle', emoji:'🔥', reward:'マウント・クラフター装備' },
+  { id:'b_syl', name:'シルフ族',      exp:'新生',    patch:'2.0', type:'battle', emoji:'🌿', reward:'マウント・クラフター装備' },
+  { id:'b_kob', name:'コボルト族',    exp:'新生',    patch:'2.0', type:'battle', emoji:'⚙️', reward:'マウント・クラフター装備' },
+  { id:'b_sah', name:'サハギン族',    exp:'新生',    patch:'2.2', type:'battle', emoji:'🐟', reward:'マウント・クラフター装備' },
+  { id:'b_ikx', name:'イクサル族',    exp:'新生',    patch:'2.3', type:'battle', emoji:'🐦', reward:'マウント・クラフター装備' },
+  { id:'b_vnu', name:'バヌバヌ族',    exp:'新生',    patch:'2.4', type:'battle', emoji:'🌊', reward:'マウント・クラフター装備' },
+  // 蒼天 3.x
+  { id:'b_gna', name:'グナース族',    exp:'蒼天',    patch:'3.0', type:'battle', emoji:'🧊', reward:'マウント・ハウジング家具' },
+  { id:'b_mog', name:'モーグリ族',    exp:'蒼天',    patch:'3.0', type:'craft',  emoji:'🎀', reward:'マウント・クラフター装備' },
+  // 紅蓮 4.x
+  { id:'b_koj', name:'コウジン族',    exp:'紅蓮',    patch:'4.0', type:'craft',  emoji:'🐢', reward:'マウント・クラフター装備' },
+  { id:'b_ana', name:'アナンタ族',    exp:'紅蓮',    patch:'4.0', type:'battle', emoji:'🐍', reward:'マウント・召喚士専用装備' },
+  { id:'b_nmz', name:'ナマズオ族',    exp:'紅蓮',    patch:'4.2', type:'gather', emoji:'🐡', reward:'マウント・ギャザラー装備' },
+  // 漆黒 5.x
+  { id:'b_dwa', name:'ドワーフ族',    exp:'漆黒',    patch:'5.0', type:'craft',  emoji:'⚒️', reward:'マウント・クラフター装備' },
+  { id:'b_pix', name:'ピクシー族',    exp:'漆黒',    patch:'5.0', type:'battle', emoji:'🧚', reward:'マウント・ミニオン' },
+  { id:'b_kit', name:'キタリ族',      exp:'漆黒',    patch:'5.1', type:'gather', emoji:'🌾', reward:'マウント・ギャザラー装備' },
+// 暁月 6.x
+  { id:'b_ark', name:'アルカソーダラ族', exp:'暁月',  patch:'6.0', type:'battle', emoji:'⭐', reward:'マウント・ミニオン' },
+  { id:'b_omc', name:'オミクロン族',     exp:'暁月',  patch:'6.1', type:'craft',  emoji:'🤖', reward:'マウント・クラフター装備' },
+  { id:'b_rep', name:'レポリット族',     exp:'暁月',  patch:'6.0', type:'craft',  emoji:'🐇', reward:'マウント・クラフター装備' },
+  // 黄金 7.x
+  { id:'b_ppr', name:'ペルペル族',    exp:'黄金',    patch:'7.1', type:'battle', emoji:'🦁', reward:'マウント・ミニオン・エモート' },
+  { id:'b_mam', name:'マムージャ族',  exp:'黄金',    patch:'7.2', type:'gather', emoji:'🦎', reward:'マウント・ギャザラー装備' },
+  { id:'b_yok', name:'ヨカフイ族',    exp:'黄金',    patch:'7.35',type:'craft',  emoji:'🪲', reward:'マウント・クラフター装備' },
+  { id:'b_mhj', name:'モーヒュジャ族', exp:'黄金',   patch:'7.4', type:'battle', emoji:'🦅', reward:'マウント・ミニオン' },
+];
+
+// state init
+if (!S.beastRanks) S.beastRanks = {};
+// 画像データを初期値として設定（未設定のもののみ）
+const BEAST_INIT = {
+  b_amr:'信頼', b_syl:'信頼', b_kob:'信頼', b_sah:'信頼',
+  b_ikx:'名誉', b_vnu:'誓約',
+  b_gna:'誓約', b_mog:'誓約',
+  b_koj:'誓約', b_ana:'誓約★', b_nmz:'誓約★',
+  b_dwa:'誓約', b_pix:'誓約', b_kit:'名誉',
+  b_ark:'誓約', b_omc:'誓約', b_rep:'名誉',
+  b_ppr:'未解放', b_mam:'未解放', b_yok:'未解放', b_mhj:'未解放',
+};
+BEASTS_DEFAULT.forEach(b => {
+  if (S.beastRanks[b.id] === undefined) S.beastRanks[b.id] = BEAST_INIT[b.id] || '未解放';
+});
+
+// ランク → 進捗数値（0-6）
+function rankIdx(r) { return RANKS.indexOf(r); }
+
+function renderBeast() {
+  const exps = [...new Set(BEASTS_DEFAULT.map(b=>b.exp))];
+  const typeLabel = { battle:'⚔️ 戦闘', craft:'🔨 クラフター', gather:'🌿 ギャザラー' };
+  const typeFilter = ['all','battle','craft','gather'];
+
+  // filter state
+  if (renderBeast._filter === undefined) renderBeast._filter = 'all';
+  const f = renderBeast._filter;
+
+  const filterRow = `<div class="filter-row" style="margin-bottom:16px">
+    ${typeFilter.map(t=>`<button class="filter-btn${f===t?' active':''}" onclick="renderBeast._filter='${t}';renderBeast()">${t==='all'?'すべて':typeLabel[t]}</button>`).join('')}
+  </div>`;
+
+  const total = BEASTS_DEFAULT.length;
+  const allied = BEASTS_DEFAULT.filter(b=>S.beastRanks[b.id]==='誓約'||S.beastRanks[b.id]==='誓約★').length;
+  const started = BEASTS_DEFAULT.filter(b=>S.beastRanks[b.id]!=='未解放').length;
+
+  const header = `<div class="sec-title" style="margin-bottom:16px">
+    蛮族クエスト進捗
+    <span class="sec-cnt">誓約 <b>${allied}</b>/${total} &nbsp;|&nbsp; 開始済み <b>${started}</b>/${total}</span>
+  </div>`;
+
+  const sections = exps.map(exp => {
+    const group = BEASTS_DEFAULT.filter(b => b.exp===exp && (f==='all' || b.type===f));
+    if (!group.length) return '';
+
+    const cards = group.map(b => {
+      const rank = S.beastRanks[b.id] || '未解放';
+      const ri = rankIdx(rank);
+      const pct = Math.round(ri / (RANKS.length-1) * 100);
+      const color = RANK_COLOR[rank];
+      const rankOpts = RANKS.map(r=>`<option value="${r}"${rank===r?' selected':''}>${r}</option>`).join('');
+
+      return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;transition:border-color .12s"
+        onmouseenter="this.style.borderColor='var(--border2)'" onmouseleave="this.style.borderColor='var(--border)'">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:20px">${b.emoji}</span>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:500">${b.name}</div>
+            <div style="font-size:11px;color:var(--text3);font-family:var(--mono)">${typeLabel[b.type]} &nbsp;·&nbsp; ${b.patch}</div>
+          </div>
+          <select style="background:var(--bg4);border:1px solid var(--border);color:${color};font-family:var(--mono);font-size:11px;padding:3px 6px;border-radius:3px;cursor:pointer"
+            onchange="S.beastRanks['${b.id}']=this.value;save();renderBeast()">
+            ${rankOpts}
+          </select>
+        </div>
+        <div style="height:4px;background:var(--bg4);border-radius:2px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${color};border-radius:2px;transition:width .3s"></div>
+        </div>
+        <div style="font-size:11px;color:var(--text3)">報酬: ${b.reward}</div>
+      </div>`;
+    }).join('');
+
+    const expAllied = group.filter(b=>S.beastRanks[b.id]==='誓約'||S.beastRanks[b.id]==='誓約★').length;
+    return `<div class="sec-title" style="margin-top:20px">${exp}
+      <span class="sec-cnt">誓約 <b>${expAllied}</b>/${group.length}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-bottom:4px">
+      ${cards}
+    </div>`;
+  }).join('');
+
+  document.getElementById('tab-beast').innerHTML = header + filterRow + sections;
+}
+
+// ==================== BLUE MAGE ====================
+// 124種 (patch 4.5→5.15→5.45→6.45)
+// cat: attack/heal/support/special
+const BLUE_SPELLS = [
+  // --- Patch 4.5 (No.1-49) ---
+  {no:1,  name:'水鉄砲',          cat:'attack',  src:'クエスト報酬'},
+  {no:2,  name:'火炎放射',         cat:'attack',  src:'ID:ブレイフロクスHard / 黙約の塔'},
+  {no:3,  name:'アクアブレス',     cat:'attack',  src:'アマジナ杯(事件屋) / マスクLv20'},
+  {no:4,  name:'狂乱',            cat:'attack',  src:'ID:シリウス大灯台(N)'},
+  {no:5,  name:'ドリルキャノン',   cat:'attack',  src:'北ザナラーン：魔導ヴァンガード強化型'},
+  {no:6,  name:'高圧電流',         cat:'attack',  src:'大迷宮バハムート邂逅1 / マスクLv15'},
+  {no:7,  name:'ルーム',           cat:'support', src:'Bモブ不滅のフェランド / タムタラ(Hard)'},
+  {no:8,  name:'ファイナルスピア', cat:'attack',  src:'中央ラノシア：キラー・ヴェスパ'},
+  {no:9,  name:'苦悶の歌',         cat:'attack',  src:'ID:シリウス大灯台(N) ラスボス'},
+  {no:10, name:'グラワー',         cat:'attack',  src:'ID:オーラムヴェイル'},
+  {no:11, name:'プレーンクラッカー',cat:'attack', src:'北部森林 / 南ザナラーン：ゴーレム'},
+  {no:12, name:'怒髪天',           cat:'attack',  src:'東部森林：ワイルドボア'},
+  {no:13, name:'ホワイトウィンド', cat:'heal',    src:'ブルートーテム（ラーニング10種）'},
+  {no:14, name:'レベル5石化',      cat:'attack',  src:'ID:ハウケタ御用邸(N) / 古代の民の迷宮'},
+  {no:15, name:'とぎたて',         cat:'support', src:'ID:ワンダラーパレス(N) ラスボス'},
+  {no:16, name:'アイススパイク',   cat:'attack',  src:'中央森林：インプ'},
+  {no:17, name:'吸血',            cat:'heal',    src:'低地ラノシア：ケーブバット'},
+  {no:18, name:'どんぐり爆弾',    cat:'attack',  src:'東部・中央森林：トレント'},
+  {no:19, name:'爆弾投げ',        cat:'attack',  src:'西ザナラーン：ゴブリン族'},
+  {no:20, name:'ガードオファ',     cat:'support', src:'ブルートーテム（ラーニング5種）'},
+  {no:21, name:'自爆',            cat:'attack',  src:'西ザナラーン：グライド・ボム'},
+  {no:22, name:'融合',            cat:'support', src:'ブルートーテム（ラーニング20種）'},
+  {no:23, name:'猫だまし',        cat:'support', src:'中央森林：キキルン族'},
+  {no:24, name:'フライングサーディン',cat:'attack',src:'東ラノシア：アプカル'},
+  {no:25, name:'鼻息',            cat:'attack',  src:'アマジナ杯：テュポーン / マスクLv20'},
+  {no:26, name:'4トンズ',         cat:'attack',  src:'アマジナ杯：オルトロス'},
+  {no:27, name:'怪視線',          cat:'attack',  src:'古城アムダプール(N) / グブラ幻想図書館(Hard)'},
+  {no:28, name:'臭い息',          cat:'attack',  src:'中央森林：ストローパー / モル'},
+  {no:29, name:'超硬化',          cat:'support', src:'皇都イシュガルド防衛線 / ストーンヴィジル(Hard)'},
+  {no:30, name:'マイティガード',   cat:'support', src:'ブルートーテム（ラーニング10種）'},
+  {no:31, name:'スティッキータン', cat:'attack',  src:'中央ザナラーン：トキシックトード'},
+  {no:32, name:'ガマの脂',        cat:'heal',    src:'西ザナラーン：ラフィング・ギガントード'},
+  {no:33, name:'氷結の咆哮',      cat:'attack',  src:'ID:カッターズクライ(N) / マスクLv21/25'},
+  {no:34, name:'雷電の咆哮',      cat:'attack',  src:'ID:カッターズクライ(N) / マスクLv21/25'},
+  {no:35, name:'ミサイル',        cat:'attack',  src:'真ギルガメ討滅戦：エンキドゥ'},
+  {no:36, name:'針千本',          cat:'attack',  src:'南ザナラーン：サボテンダー・バイラー'},
+  {no:37, name:'インクジェット',   cat:'attack',  src:'ID:サスタシャ(Hard) ラスボス'},
+  {no:38, name:'ファイアアンゴン', cat:'attack',  src:'ID:ワンダラーパレス(Hard) 1ボス'},
+  {no:39, name:'月の笛',          cat:'support', src:'ブルートーテム（マスク10種）'},
+  {no:40, name:'テールスクリュー', cat:'attack',  src:'ID:サスタシャ(Hard) 1ボス'},
+  {no:41, name:'マインドブラスト', cat:'attack',  src:'ID:タムタラの墓所(N) ラスボス'},
+  {no:42, name:'死の宣告',        cat:'attack',  src:'ブルートーテム（マスク20種）'},
+  {no:43, name:'不思議な光',      cat:'support', src:'モードゥナ：レンティック・マッドパピー'},
+  {no:44, name:'フェザーレイン',   cat:'attack',  src:'極ガルーダ討滅戦'},
+  {no:45, name:'エラプション',     cat:'attack',  src:'ノーマル/真/極イフリート討滅戦'},
+  {no:46, name:'マウンテンバスター',cat:'attack', src:'真/極タイタン討滅戦'},
+  {no:47, name:'ショックストライク',cat:'attack', src:'真/極ラムウ討滅戦'},
+  {no:48, name:'氷雪乱舞',        cat:'attack',  src:'極シヴァ討滅戦'},
+  {no:49, name:'水神のヴェール',   cat:'support', src:'真/極リヴァイアサン討滅戦'},
+  // --- Patch 5.15 (No.50-80) ---
+  {no:50, name:'アルペンドラフト',     cat:'attack', src:'アバラシア雲海：グリフィン / ID:ダスクヴィジル'},
+  {no:51, name:'プロティアンウェイブ', cat:'attack', src:'アレキサンダー起動3層 / マスクLv29'},
+  {no:52, name:'猛吹雪',              cat:'attack', src:'クルザス西部高地：イエティ'},
+  {no:53, name:'エレクトロジェネシス', cat:'attack', src:'アバラシア雲海：コノドント'},
+  {no:54, name:'カルトシュトラール',   cat:'attack', src:'アレキサンダー起動1層：ファウスト先生'},
+  {no:55, name:'アビサルトランスフィクション',cat:'attack',src:'ID:グブラ幻想図書館(N) / ハウケタ御用邸(Hard)'},
+  {no:56, name:'チャープ',            cat:'support',src:'アバラシア雲海：パイッサ'},
+  {no:57, name:'怪音波',              cat:'attack', src:'アジス・ラー：エンプーサ'},
+  {no:58, name:'エーテルコピー',       cat:'support',src:'ID:ハルブレーカー・アイル(Hard) ラスボス'},
+  {no:59, name:'超振動',              cat:'attack', src:'マスクカーニバル：Lv6'},
+  {no:60, name:'マジックハンマー',     cat:'support',src:'マスクカーニバル：Lv8'},
+  {no:61, name:'グランドデザイン',     cat:'attack', src:'マスクカーニバル：Lv9'},
+  {no:62, name:'メルトダウン',         cat:'attack', src:'ID:クリスタルタワー：古代の民の迷宮 ラスボス'},
+  {no:63, name:'フライングスクゥ',     cat:'attack', src:'クルザス中央高地：フライングスクゥ'},
+  {no:64, name:'ソングオブトルマリン',  cat:'attack', src:'ネバーリープのトルマリン'},
+  {no:65, name:'トードオイル',         cat:'support',src:'クルザス中央高地：スノートード'},
+  {no:66, name:'ポイズンブレス',       cat:'attack', src:'クルザス中央高地：バジリスク'},
+  {no:67, name:'シーフズランタン',     cat:'attack', src:'ID:千年都市マハ / ヴォイドアーク'},
+  {no:68, name:'ブラッドドレイン',     cat:'heal',   src:'ドラヴァニア雲海：バット'},
+  {no:69, name:'インセクトスキン',     cat:'support',src:'アジス・ラー：エーテリアルスライム'},
+  {no:70, name:'ジェットストリーム',   cat:'attack', src:'アジス・ラー：サンリズム'},
+  {no:71, name:'ディバインキャタラクト',cat:'attack',src:'ID:天聖アトモスウェポン'},
+  {no:72, name:'スナートゥース',       cat:'attack', src:'ID:アバラシアンタール'},
+  {no:73, name:'ロードオブクラウン',   cat:'attack', src:'ニーズヘッグ激闘戦（事件屋）'},
+  {no:74, name:'ロストフォーミュラ',   cat:'support',src:'ドラヴァニア雲海：ビヘモス'},
+  {no:75, name:'ムーンフルート',       cat:'support',src:'極ニーズヘッグ討滅戦'},
+  {no:76, name:'サムシングブラック',   cat:'attack', src:'極ニーズヘッグ討滅戦 / 極ティターニア'},
+  {no:77, name:'ネクロシス',           cat:'attack', src:'廃墟の塔：ランドワーム'},
+  {no:78, name:'リベンジブラスト',     cat:'attack', src:'ブルートーテム（ラーニング50種）'},
+  {no:79, name:'イグジュビエーション', cat:'heal',   src:'アバラシア雲海：アバラシアワモーラ'},
+  {no:80, name:'コルヌスクラルパス',   cat:'attack', src:'アバラシア雲海：コルヌス'},
+  // --- Patch 5.45 (No.81-104) ---
+  {no:81,  name:'ショットガンウィング', cat:'attack', src:'クルザス：バットの一種'},
+  {no:82,  name:'バンシーズワイル',     cat:'attack', src:'オーボンヌ修道院(N/Hard)'},
+  {no:83,  name:'ポールシフト',         cat:'support',src:'オメガ：アルファ編4層'},
+  {no:84,  name:'フォルコンレスト',     cat:'attack', src:'ギラバニア山脈：スタリオン'},
+  {no:85,  name:'ガスバブル',           cat:'attack', src:'紅玉海：バブルチョコボ'},
+  {no:86,  name:'カムイカチュア',        cat:'attack', src:'ID:バールズアップ/ヤンサ：フォックスファイア'},
+  {no:87,  name:'紅の剣',              cat:'attack', src:'ID:星導山寺院(N)'},
+  {no:88,  name:'マトラマジック',       cat:'attack', src:'ブルートーテム（ラーニング100種）'},
+  {no:89,  name:'ドラゴンフォース',     cat:'support',src:'ブルートーテム（ラーニング100種）'},
+  {no:90,  name:'天使のおやつ',         cat:'heal',   src:'ブルートーテム（Lv70達成）'},
+  {no:91,  name:'天使のささやき',       cat:'heal',   src:'ブルートーテム（マスク30種）'},
+  {no:92,  name:'プライマルロア',       cat:'attack', src:'極チタニア討滅戦'},
+  {no:93,  name:'インパクトストライク', cat:'attack', src:'極チタニア討滅戦'},
+  {no:94,  name:'ビルドアップ',         cat:'support',src:'マスクカーニバル：Lv22'},
+  {no:95,  name:'テトラフレア',         cat:'attack', src:'希望の園エデン：覚醒4層'},
+  {no:96,  name:'リンゴズルバン',       cat:'attack', src:'漆黒エリア：ドラゴンフライ'},
+  {no:97,  name:'ブルスター',           cat:'attack', src:'ハングリーウォールで戦うことで取得'},
+  {no:98,  name:'ファントムフルート',   cat:'attack', src:'ノーパン: アムレン→フォエン→ティターニア'},
+  {no:99,  name:'ペレグリネーション',   cat:'support',src:'極イノセンス討滅戦'},
+  {no:100, name:'ファイナルスティング', cat:'attack', src:'漆黒エリア：バイパー'},
+  {no:101, name:'タナトスクライ',       cat:'attack', src:'希望の園エデン：共鳴4層'},
+  {no:102, name:'マジカルハンマー',     cat:'support',src:'マスクカーニバル：Lv27'},
+  {no:103, name:'スターライトプランジ', cat:'attack', src:'ノーパン→ティターニア→カーバンクル'},
+  {no:104, name:'ライフデスト',         cat:'attack', src:'希望の園エデン：再生4層'},
+  // --- Patch 6.45 (No.105-124) ---
+  {no:105, name:'フロストブレス',       cat:'attack', src:'ガレマルド：スノーウルフ'},
+  {no:106, name:'ドゥームパルス',       cat:'attack', src:'ID:另零式ゴッドセーヴザクイーン'},
+  {no:107, name:'ブラインドスカルク',   cat:'support',src:'ラヴィリンソス：スカルク'},
+  {no:108, name:'ソールドヴォイス',     cat:'attack', src:'マスクカーニバル：Lv1(再戦)'},
+  {no:109, name:'コルヌスクラップス',   cat:'attack', src:'マスクカーニバル：各種'},
+  {no:110, name:'オルトガス',           cat:'attack', src:'オルト・エウレカ：各種'},
+  {no:111, name:'プライマルバッシュ',   cat:'attack', src:'フォルゴテン・マウントバスター'},
+  {no:112, name:'エクソターリック',     cat:'attack', src:'フォルゴテン・マウントバスター'},
+  {no:113, name:'アンダーミレニアム',   cat:'attack', src:'マスクカーニバル後半'},
+  {no:114, name:'魔のルーン',           cat:'attack', src:'ティターニア討滅戦'},
+  {no:115, name:'ディメンションシフト', cat:'attack', src:'希望の園エデン：覚醒1層'},
+  {no:116, name:'コンヴィクション・マルカート',cat:'attack',src:'偽造天界：グルグ火山'},
+  {no:117, name:'ミラーイメージ',       cat:'support',src:'石の家：アルケア'},
+  {no:118, name:'ソウルスライス',       cat:'attack', src:'パンデモニウム辺獄4層'},
+  {no:119, name:'ウルティマ',           cat:'attack', src:'ウルティマウェポン（各種）'},
+  {no:120, name:'フリーザーブラスト',   cat:'attack', src:'マスクカーニバル：各種'},
+  {no:121, name:'オルレアンドロップ',   cat:'attack', src:'マスクカーニバル：各種'},
+  {no:122, name:'ニール',              cat:'heal',   src:'パンデモニウム天獄2層'},
+  {no:123, name:'マジックモーター',     cat:'support',src:'マスクカーニバル：Lv9(再戦)'},
+  {no:124, name:'死すべき定め',         cat:'attack', src:'ティターニア討滅戦'},
+];
+
+// state init — スプレッドシートから取得した習得済みデータ
+if (!S.blueLearned) {
+  S.blueLearned = {};
+  const BLUE_LEARNED_INIT = [1,2,5,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,28,29,30,31,32,33,34,35,36,39,40,41,43,45,47,48,50,52,53,56,57,58,59,62,63,64,67,71,73,74,75,77,78,80,81,82,88,90,91,92,93,94,96,99,101,103,104];
+  BLUE_LEARNED_INIT.forEach(n => { S.blueLearned[n] = true; });
+}
+
+let blueFilter = 'all'; // all/unlearned/attack/heal/support/special
+let blueSearch = '';
+
+function renderBlueMage() {
+  const catLabel = {attack:'⚔️ 攻撃', heal:'💚 回復', support:'🛡️ サポート'};
+  const learned = BLUE_SPELLS.filter(s => S.blueLearned[s.no]).length;
+
+  const filterRow = `<div class="filter-row" style="margin-bottom:8px">
+    ${['all','unlearned','attack','heal','support'].map(f=>`
+      <button class="filter-btn${blueFilter===f?' active':''}" onclick="blueFilter='${f}';renderBlueMage()">
+        ${f==='all'?'すべて':f==='unlearned'?'未習得':catLabel[f]}
+      </button>`).join('')}
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+    <input class="search-bar" style="max-width:280px;margin-bottom:0" placeholder="魔法名 / 入手先で検索…"
+      value="${blueSearch}" oninput="blueSearch=this.value;renderBlueMage()">
+    <span style="font-family:var(--mono);font-size:12px;color:var(--text3)">習得 <b style="color:var(--green)">${learned}</b>/124</span>
+    <button class="filter-btn" onclick="if(confirm('全チェックをリセットしますか？')){S.blueLearned={};save();renderBlueMage()}" style="color:var(--red);border-color:var(--red2);margin-left:auto">リセット</button>
+  </div>`;
+
+  const shown = BLUE_SPELLS.filter(s => {
+    if (blueFilter === 'unlearned' && S.blueLearned[s.no]) return false;
+    if (['attack','heal','support'].includes(blueFilter) && s.cat !== blueFilter) return false;
+    if (blueSearch) {
+      const q = blueSearch.toLowerCase();
+      return s.name.includes(q) || s.src.toLowerCase().includes(q);
+    }
+    return true;
+  });
+
+  // group by patch
+  const patches = [
+    {label:'Patch 4.5（No.1-49）',   from:1,   to:49},
+    {label:'Patch 5.15（No.50-80）',  from:50,  to:80},
+    {label:'Patch 5.45（No.81-104）', from:81,  to:104},
+    {label:'Patch 6.45（No.105-124）',from:105, to:124},
+  ];
+
+  const sections = patches.map(p => {
+    const group = shown.filter(s => s.no >= p.from && s.no <= p.to);
+    if (!group.length) return '';
+    const pLearned = BLUE_SPELLS.filter(s=>s.no>=p.from&&s.no<=p.to&&S.blueLearned[s.no]).length;
+    const pTotal   = BLUE_SPELLS.filter(s=>s.no>=p.from&&s.no<=p.to).length;
+    const rows = group.map(s => `
+      <div class="todo-item${S.blueLearned[s.no]?' done':''}" onclick="S.blueLearned[${s.no}]=!S.blueLearned[${s.no}];save();renderBlueMage()">
+        <div class="chk"><span class="chk-mark">✓</span></div>
+        <div style="flex:1">
+          <div class="ti-name"><span style="font-family:var(--mono);color:var(--text3);font-size:11px;margin-right:6px">${String(s.no).padStart(3,'0')}</span>${s.name}</div>
+          <div class="ti-sub">${s.src}</div>
+        </div>
+        <span class="badge b-${s.cat==='attack'?'high':s.cat==='heal'?'once':'ongoing'}">${s.cat==='attack'?'攻撃':s.cat==='heal'?'回復':'サポート'}</span>
+      </div>`).join('');
+    return `<div class="sec-title">${p.label}<span class="sec-cnt"><b>${pLearned}</b>/${pTotal}</span></div>
+            <div class="todo-grid">${rows}</div>`;
+  }).join('');
+
+  document.getElementById('tab-bluemage').innerHTML = filterRow + (sections || '<div class="empty">条件に一致する青魔法なし</div>');
+}
+
+// ==================== SEALS ====================
+// 記章種: allied=同盟, centurio=セントリオ, nutsy=ナッツィ(黄金), sack=サックオブナッツ
+const SEAL_ITEMS = [
+  // --- 同盟記章 (Allied Seals) ---
+  {id:'as01', currency:'同盟', name:'マメット・サキュバス',   type:'ミニオン', cost:500,  extra:''},
+  {id:'as02', currency:'同盟', name:'マメット・ヴァンガード', type:'ミニオン', cost:500,  extra:''},
+  {id:'as03', currency:'同盟', name:'マメット・トンベリ',     type:'ミニオン', cost:500,  extra:''},
+  {id:'as04', currency:'同盟', name:'マメット・ガーゴイル',   type:'ミニオン', cost:500,  extra:''},
+  {id:'as05', currency:'同盟', name:'マメット・チョコボ',     type:'ミニオン', cost:500,  extra:''},
+  {id:'as06', currency:'同盟', name:'チョコボ速度詳細地図Ⅰ', type:'その他',  cost:200,  extra:'マウント速度UP'},
+  {id:'as07', currency:'同盟', name:'チョコボ速度詳細地図Ⅱ', type:'その他',  cost:200,  extra:'マウント速度UP'},
+  {id:'as08', currency:'同盟', name:'チョコボ速度詳細地図Ⅲ', type:'その他',  cost:200,  extra:'マウント速度UP'},
+  {id:'as09', currency:'同盟', name:'チョコボ速度詳細地図Ⅳ', type:'その他',  cost:200,  extra:'マウント速度UP'},
+  {id:'as10', currency:'同盟', name:'ベンチャースクリップ×5', type:'その他',  cost:200,  extra:'リテイナー派遣'},
+  {id:'as11', currency:'同盟', name:'転送網利用券',           type:'その他',  cost:200,  extra:'テレポ無料'},
+  // --- セントリオ記章 (Centurio Seals) ---
+  {id:'cs01', currency:'セントリオ', name:'ガロール(マウント)',         type:'マウント', cost:1500, extra:'クラン手記×2'},
+  {id:'cs02', currency:'セントリオ', name:'ドラヴァニアンヒップ(マウント)',type:'マウント',cost:1500,extra:'クラン手記×2'},
+  {id:'cs03', currency:'セントリオ', name:'マメット・スカルミリオーネ',  type:'ミニオン', cost:500,  extra:''},
+  {id:'cs04', currency:'セントリオ', name:'マメット・エキドナ',          type:'ミニオン', cost:500,  extra:''},
+  {id:'cs05', currency:'セントリオ', name:'マメット・オボロ',            type:'ミニオン', cost:500,  extra:''},
+  {id:'cs06', currency:'セントリオ', name:'マメット・テンゾウ',          type:'ミニオン', cost:500,  extra:''},
+  {id:'cs07', currency:'セントリオ', name:'転送網利用券',                type:'その他',  cost:200,  extra:'テレポ無料'},
+  {id:'cs08', currency:'セントリオ', name:'ベンチャースクリップ×5',      type:'その他',  cost:200,  extra:''},
+  {id:'cs09', currency:'セントリオ', name:'クラン員の手記',              type:'素材',    cost:100,  extra:'各種交換素材'},
+  {id:'cs10', currency:'セントリオ', name:'傑物クラン員の手記',          type:'素材',    cost:500,  extra:'希少交換素材'},
+  {id:'cs11', currency:'セントリオ', name:'名物クラン員の手記',          type:'素材',    cost:500,  extra:'希少交換素材'},
+  // --- ナッツィ記章 (Nuts / 漆黒・暁月・黄金) ---
+  {id:'nt01', currency:'ナッツィ', name:'ランドワーム(マウント)',        type:'マウント', cost:3200, extra:'Sモブ討伐報酬'},
+  {id:'nt02', currency:'ナッツィ', name:'ラムガン(マウント)',            type:'マウント', cost:3200, extra:''},
+  {id:'nt03', currency:'ナッツィ', name:'プテロダクティル(マウント)',    type:'マウント', cost:3200, extra:''},
+  {id:'nt04', currency:'ナッツィ', name:'マメット・スカラー',           type:'ミニオン', cost:600,  extra:''},
+  {id:'nt05', currency:'ナッツィ', name:'マメット・カインダム',         type:'ミニオン', cost:600,  extra:''},
+  {id:'nt06', currency:'ナッツィ', name:'マメット・エメトセルク',       type:'ミニオン', cost:600,  extra:''},
+  {id:'nt07', currency:'ナッツィ', name:'マメット・ハイデリン',         type:'ミニオン', cost:600,  extra:''},
+  {id:'nt08', currency:'ナッツィ', name:'マメット・ゾス',              type:'ミニオン', cost:600,  extra:''},
+  {id:'nt09', currency:'ナッツィ', name:'ベンチャースクリップ×5',      type:'その他',  cost:200,  extra:''},
+  {id:'nt10', currency:'ナッツィ', name:'転送網利用券',                type:'その他',  cost:200,  extra:''},
+  // --- サック・オブ・ナッツ (黄金 7.x) ---
+  {id:'sn01', currency:'サック・オブ・ナッツ', name:'ギャルゴルクラ(マウント)',   type:'マウント', cost:3200, extra:'黄金Sモブ'},
+  {id:'sn02', currency:'サック・オブ・ナッツ', name:'シヴァラービー(マウント)',   type:'マウント', cost:3200, extra:''},
+  {id:'sn03', currency:'サック・オブ・ナッツ', name:'マメット・エレンヴィル',     type:'ミニオン', cost:600,  extra:''},
+  {id:'sn04', currency:'サック・オブ・ナッツ', name:'マメット・グルール',         type:'ミニオン', cost:600,  extra:''},
+  {id:'sn05', currency:'サック・オブ・ナッツ', name:'マメット・ウーキエン',       type:'ミニオン', cost:600,  extra:''},
+  {id:'sn06', currency:'サック・オブ・ナッツ', name:'ベンチャースクリップ×5',    type:'その他',  cost:200,  extra:''},
+  {id:'sn07', currency:'サック・オブ・ナッツ', name:'転送網利用券',              type:'その他',  cost:200,  extra:''},
+];
+
+if (!S.sealGot) S.sealGot = {};
+
+let sealCurrFilter = 'all';
+let sealTypeFilter = 'all';
+
+function renderSeals() {
+  const currencies = [...new Set(SEAL_ITEMS.map(i=>i.currency))];
+  const types = [...new Set(SEAL_ITEMS.map(i=>i.type))];
+  const typeColor = {マウント:'var(--gold)',ミニオン:'#c882e8',素材:'var(--accent)',その他:'var(--text2)'};
+
+  const got = SEAL_ITEMS.filter(i=>S.sealGot[i.id]).length;
+
+  const filters = `<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;align-items:flex-start">
+    <div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:4px">記章種</div>
+      <div class="filter-row" style="margin-bottom:0">
+        ${['all',...currencies].map(c=>`<button class="filter-btn${sealCurrFilter===c?' active':''}" onclick="sealCurrFilter='${c}';renderSeals()">${c==='all'?'すべて':c}</button>`).join('')}
+      </div>
+    </div>
+    <div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:4px">種別</div>
+      <div class="filter-row" style="margin-bottom:0">
+        ${['all',...types].map(t=>`<button class="filter-btn${sealTypeFilter===t?' active':''}" onclick="sealTypeFilter='${t}';renderSeals()">${t==='all'?'すべて':t}</button>`).join('')}
+      </div>
+    </div>
+    <span style="font-family:var(--mono);font-size:12px;color:var(--text3);align-self:flex-end;margin-left:auto">入手済み <b style="color:var(--green)">${got}</b>/${SEAL_ITEMS.length}</span>
+  </div>`;
+
+  const shown = SEAL_ITEMS.filter(i =>
+    (sealCurrFilter==='all' || i.currency===sealCurrFilter) &&
+    (sealTypeFilter==='all' || i.type===sealTypeFilter)
+  );
+
+  const sections = currencies.filter(c=>sealCurrFilter==='all'||c===sealCurrFilter).map(curr => {
+    const group = shown.filter(i=>i.currency===curr);
+    if (!group.length) return '';
+    const currGot = SEAL_ITEMS.filter(i=>i.currency===curr&&S.sealGot[i.id]).length;
+    const currTotal = SEAL_ITEMS.filter(i=>i.currency===curr).length;
+    const rows = group.map(i => `
+      <div class="todo-item${S.sealGot[i.id]?' done':''}" onclick="S.sealGot['${i.id}']=!S.sealGot['${i.id}'];save();renderSeals()">
+        <div class="chk"><span class="chk-mark">✓</span></div>
+        <div style="flex:1">
+          <div class="ti-name">${i.name}${i.extra?` <span style="font-size:11px;color:var(--text3)">— ${i.extra}</span>`:''}</div>
+          <div class="ti-sub">${i.currency}記章 × ${i.cost.toLocaleString()}</div>
+        </div>
+        <span class="badge" style="background:${typeColor[i.type]}22;color:${typeColor[i.type]};border:1px solid ${typeColor[i.type]}55">${i.type}</span>
+      </div>`).join('');
+    return `<div class="sec-title">${curr}記章<span class="sec-cnt"><b>${currGot}</b>/${currTotal}</span></div>
+            <div class="todo-grid">${rows}</div>`;
+  }).join('');
+
+  document.getElementById('tab-seals').innerHTML = filters + (sections || '<div class="empty">条件に一致するアイテムなし</div>');
+}
+
+// ==================== ORCHESTRION ====================
+// --- スプレッドシートのデータを元に再構築 ---
+const ORCH_ROLLS = [
+  // --- 新生 (フィールド1から主要なもの) ---
+  {id:'or001', name:'水車の調べ',         exp:'新生', src:'グリダニア：黒兎堂（5,000ギル）'},
+  {id:'or002', name:'蛍たちの舞踏会',     exp:'新生', src:'グリダニア：黒兎堂（5,000ギル）'},
+  {id:'or003', name:'静穏の森',           exp:'新生', src:'グリダニア：黒兎堂（5,000ギル）'},
+  {id:'or004', name:'希望の都',           exp:'新生', src:'ウルダハ：アシュガナ貿易（5,000ギル）'},
+  {id:'or005', name:'夢見る女王陛下',     exp:'新生', src:'ウルダハ：アシュガナ貿易（5,000ギル）'},
+  {id:'or006', name:'灼熱の地へ',         exp:'新生', src:'ウルダハ：アシュガナ貿易（5,000ギル）'},
+  {id:'or007', name:'潮風香る街',         exp:'新生', src:'エールポート（5,000ギル）'},
+  {id:'or008', name:'心の故郷',           exp:'新生', src:'ハウジングエリア：よろず屋（5,000ギル）'},
+  {id:'or009', name:'リフレクション',     exp:'新生', src:'詩学×500（モードゥナ：オーリアナ）'},
+  {id:'or010', name:'フロンティア',       exp:'新生', src:'詩学×500（モードゥナ：オーリアナ）'},
+  {id:'or011', name:'もう一杯！',         exp:'新生', src:'古びた譜面（詩学×500→錬金）'},
+  {id:'or012', name:'マンダヴィル・ゴールドソーサー', exp:'新生', src:'ゴールドソーサー：10,000MGP'},
+  {id:'or013', name:'クルザスの静寂',     exp:'新生', src:'宝物庫ウズネアカナル'},
+  // --- 蒼天 ---
+  {id:'or014', name:'ノブレス・オブリージュ ～イシュガルド上層：昼～', exp:'蒼天', src:'イシュガルド：フリヌ（5,000ギル）'},
+  {id:'or015', name:'堅牢 ～イシュガルド下層：昼～',                    exp:'蒼天', src:'イシュガルド：フリヌ（5,000ギル）'},
+  {id:'or016', name:'ノブレス・スリープス～イシュガルド上層：夜～',     exp:'蒼天', src:'イシュガルド：フリヌ（5,000ギル）'},
+  {id:'or017', name:'雲霧街の夜霧～イシュガルド下層：夜～',             exp:'蒼天', src:'イシュガルド：フリヌ（5,000ギル）'},
+  {id:'or018', name:'ホームステッド',     exp:'蒼天', src:'イディルシャイア：よろず屋（5,000ギル）'},
+  // --- 紅蓮 ---
+  {id:'or019', name:'衝撃～ラールガーズリーチ：昼～',         exp:'紅蓮', src:'詩学×1,600（ラールガーズリーチ：エンナ）'},
+  {id:'or020', name:'壁の向こう側～ギラバニア辺境地帯：昼～', exp:'紅蓮', src:'FATE「樹人の長老キルニス」'},
+  {id:'or021', name:'塩と苦難の歌～ギラバニア湖畔地帯：昼～', exp:'紅蓮', src:'ギャザラースクリップ×400'},
+  {id:'or022', name:'焔の海～紅玉海：昼～',                   exp:'紅蓮', src:'FATE「ダイミョウユメミ」'},
+  {id:'or023', name:'父の誇り～ヤンサ：昼～',                 exp:'紅蓮', src:'宝物庫ウズネアカナル（深層）'},
+  {id:'or024', name:'余光～ラールガーズリーチ：夜～',         exp:'紅蓮', src:'クラフタースクリップ×400'},
+  {id:'or025', name:'忘れられた希望～ギラバニア辺境地帯：夜～',exp:'紅蓮', src:'ギャザラースクリップ×400'},
+  {id:'or026', name:'石の記憶～ギラバニア山岳地帯：夜～',     exp:'紅蓮', src:'ギャザラースクリップ×400'},
+  {id:'or027', name:'古傷～ギラバニア湖畔地帯：夜～',         exp:'紅蓮', src:'ギャザラースクリップ×400'},
+  {id:'or028', name:'紅の夜更け～クガネ：夜～',               exp:'紅蓮', src:'宝物庫ウズネアカナル（深層）'},
+  {id:'or029', name:'宵の海～紅玉海：夜～',                   exp:'紅蓮', src:'詩学×1,600（ラールガーズリーチ：エンナ）'},
+  {id:'or030', name:'母の誇り～ヤンサ：夜～',                 exp:'紅蓮', src:'宝物庫ウズネアカナル（深層）'},
+  {id:'or031', name:'地平線より昇れ～アジムステップ：夜～',   exp:'紅蓮', src:'詩学×1,600（ラールガーズリーチ：エンナ）'},
+  {id:'or032', name:'硬き者たち',         exp:'紅蓮', src:'蛮族：コウジン族（蛮族硬貨×3）'},
+  {id:'or033', name:'天晴大鯰音頭',       exp:'紅蓮', src:'蛮族：ナマズオ族（蛮族硬貨×3）'},
+  {id:'or034', name:'調和',               exp:'紅蓮', src:'クラフタースクリップ×400'},
+  {id:'or035', name:'黒渦団軍司令部',     exp:'紅蓮', src:'GC軍票×40,000'},
+  {id:'or036', name:'不滅隊作戦本部',     exp:'紅蓮', src:'GC軍票×40,000'},
+  {id:'or037', name:'日溜り',             exp:'紅蓮', src:'GS：ファッションチェックNPC（5,000ギル）'},
+  {id:'or038', name:'揺り籠',             exp:'紅蓮', src:'ドマ町人地（5,000ギル）'},
+  {id:'or039', name:'勝利か死か',         exp:'紅蓮', src:'ドマ町人地（5,000ギル）'},
+  // --- 漆黒 ---
+  {id:'or040', name:'享楽の痛み',                   exp:'漆黒', src:'漆黒Lv80メインクエスト報酬'},
+  {id:'or041', name:'ワッツハンマー・ガレージ',     exp:'漆黒', src:'蛮族：ドワーフ族（蛮族硬貨×6）'},
+  // --- 暁月 ---
+  {id:'or042', name:'白雪と黒鉄～ガレマルド：昼～', exp:'暁月', src:'バイカラージェム×350（ガレマルド）'},
+  {id:'or043', name:'黒闇と黒鉄～ガレマルド：夜～', exp:'暁月', src:'バイカラージェム×350（ガレマルド）'},
+  // --- 環境音 ---
+  {id:'or044', name:'鳥のさえずり',  exp:'環境音', src:'ハウジングエリア：よろず屋（5,000ギル）'},
+  {id:'or045', name:'小波',          exp:'環境音', src:'ハウジングエリア：よろず屋（5,000ギル）'},
+  {id:'or046', name:'雨音',          exp:'環境音', src:'ハウジングエリア：よろず屋（5,000ギル）'},
+  {id:'or047', name:'ヒグラシ',      exp:'環境音', src:'ハウジングエリア：よろず屋（5,000ギル）'},
+  {id:'or048', name:'虫の音',        exp:'環境音', src:'ハウジングエリア：よろず屋（5,000ギル）'},
+  {id:'or049', name:'焚き火',        exp:'環境音', src:'ハウジングエリア：よろず屋（5,000ギル）'},
+  {id:'or050', name:'朝の台処',      exp:'環境音', src:'ハウジングエリア：よろず屋（5,000ギル）'},
+  // --- ダンジョン ---
+  {id:'or051', name:'乙女の哀歌',               exp:'ダンジョン', src:'ID:ハウケタ御用邸'},
+  {id:'or052', name:'ゼーメル要塞',             exp:'ダンジョン', src:'ID:ゼーメル要塞'},
+  {id:'or053', name:'嵐の中の灯火',             exp:'ダンジョン', src:'古びた譜面（錬金:秘伝書1）'},
+  {id:'or054', name:'闇の抱擁',                 exp:'ダンジョン', src:'古びた譜面（錬金Lv30）'},
+  {id:'or055', name:'魔大戦の傷跡',             exp:'ダンジョン', src:'古びた譜面（錬金:秘伝書1）'},
+  {id:'or056', name:'憤怒',                     exp:'ダンジョン', src:'ID:ブレイフロクス(Hard)'},
+  {id:'or057', name:'地平線の彼方',             exp:'ダンジョン', src:'ID:ハルブレイカーアイル'},
+  {id:'or058', name:'漆黒の誓い',               exp:'ダンジョン', src:'古びた譜面（錬金Lv30）'},
+  {id:'or059', name:'秘密坑道',                 exp:'ダンジョン', src:'ID:スノークローク大氷壁'},
+  {id:'or060', name:'銀の涙',                   exp:'ダンジョン', src:'ID:黙約の塔'},
+  {id:'or061', name:'聖域の罠',                 exp:'ダンジョン', src:'ID:ワンダラーパレス(Hard)'},
+  {id:'or062', name:'不吉なる前兆',             exp:'ダンジョン', src:'詩学×375（イディルシャイア：ヒスメナ）'},
+  {id:'or063', name:'逆襲の咆哮',               exp:'ダンジョン', src:'GS：50,000MGP'},
+  {id:'or064', name:'永遠の眠り',               exp:'ダンジョン', src:'ID:ソーム・アル'},
+  {id:'or065', name:'聖座',                     exp:'ダンジョン', src:'ID:イシュガルド教皇庁'},
+  {id:'or066', name:'イマジネーション',         exp:'ダンジョン', src:'古びた譜面（錬金:秘伝書3）'},
+  {id:'or067', name:'アンブレーカブル',         exp:'ダンジョン', src:'ID:フラクタル・コンティニアム'},
+  {id:'or068', name:'有毒植物',                 exp:'ダンジョン', src:'ID:聖モシャーヌ植物園'},
+  {id:'or069', name:'上り階段をくだれ',         exp:'ダンジョン', src:'古びた譜面（錬金:秘伝書3）'},
+  {id:'or070', name:'地殻',                     exp:'ダンジョン', src:'メインクエスト Lv60'},
+  {id:'or071', name:'ビブリオフォビア',         exp:'ダンジョン', src:'ID:グブラ幻想図書館(Hard)'},
+  {id:'or072', name:'アナザーブリック',         exp:'ダンジョン', src:'メインクエスト Lv60'},
+  {id:'or073', name:'砂塵',                     exp:'ダンジョン', src:'サブクエスト Lv60'},
+  {id:'or074', name:'漆黒のエッダ',             exp:'ダンジョン', src:'DD:死者の宮殿 埋もれた財宝G2'},
+  {id:'or075', name:'鬨の声',                   exp:'ダンジョン', src:'GS：50,000MGP'},
+  {id:'or076', name:'開けられた玉手箱',         exp:'ダンジョン', src:'ID:紫水宮'},
+  {id:'or077', name:'アリエヌス',               exp:'ダンジョン', src:'ID:カストルム・アバニア'},
+  {id:'or078', name:'自由か死か',               exp:'ダンジョン', src:'ID:アラミゴ'},
+  {id:'or079', name:'炎と剣によりて',           exp:'ダンジョン', src:'ID:ホルミンスター'},
+  {id:'or080', name:'紐解かれしもの',           exp:'ダンジョン', src:'ID:キタンナ神影洞窟'},
+  {id:'or081', name:'深き底',                   exp:'ダンジョン', src:'ID:マリカの大井戸'},
+  {id:'or082', name:'憎悪',                     exp:'ダンジョン', src:'ID:カッターズクライ'},
+  {id:'or083', name:'トンベリの涙',             exp:'ダンジョン', src:'ID:ワンダラーパレス'},
+  {id:'or084', name:'すべての道が至る場所',     exp:'ダンジョン', src:'ID:ノルヴラント'},
+  {id:'or085', name:'ネメシス',                 exp:'ダンジョン', src:'ボイジャー：翠浪海 海域K'},
+  {id:'or086', name:'名誉に賭けて',             exp:'ダンジョン', src:'GS：50,000MGP'},
+  {id:'or087', name:'地下坑道',                 exp:'ダンジョン', src:'ID:カッパーベル銅山'},
+  {id:'or088', name:'闘士の修練所',             exp:'ダンジョン', src:'ID:ハラタリ修練所'},
+  {id:'or089', name:'夜明けに向かって',         exp:'ダンジョン', src:'ID:セイレーン海'},
+  {id:'or090', name:'邪竜の咆哮',               exp:'ダンジョン', src:'ID:ドラゴンズエアリー'},
+  {id:'or091', name:'ゾットの塔',               exp:'ダンジョン', src:'ID:異形楼閣 ゾットの塔'},
+  {id:'or092', name:'空が燃える日',             exp:'ダンジョン', src:'ID:ヒュペルボレア造物院'},
+  {id:'or093', name:'創造の奇跡',               exp:'ダンジョン', src:'ID:ヒュペルボレア造物'},
+  {id:'or094', name:'先ゆく星々',               exp:'ダンジョン', src:'ID:最終幻想 レムナント'},
+  {id:'or095', name:'墜落',                     exp:'ダンジョン', src:'ID:ダスクヴィジル'},
+  {id:'or096', name:'地図を広げて',             exp:'ダンジョン', src:'ID:アルザダール海底遺跡群'},
+  {id:'or097', name:'トロイア国',               exp:'ダンジョン', src:'ID:異界孤城 トロイアコート'},
+  {id:'or098', name:'聖域 ～強硬突入～',        exp:'ダンジョン', src:'ID:イシュガルド教皇庁'},
+  {id:'or099', name:'鐘声 ～強硬突入～',        exp:'ダンジョン', src:'ID:イシュガルド教皇庁'},
+  {id:'or100', name:'野営地のお調子者',         exp:'ダンジョン', src:'ID:ブレイフロクスの野営地'},
+  // --- 討伐・討滅戦 ---
+  {id:'or101', name:'天より降りし力',     exp:'討伐・討滅戦', src:'GS：50,000MGP'},
+  {id:'or102', name:'究極幻想',           exp:'討伐・討滅戦', src:'アチーブメント：旋律に魅せられし者ランク2'},
+  {id:'or103', name:'原始の審判',         exp:'討伐・討滅戦', src:'古びた譜面（錬金:秘伝書1）'},
+  {id:'or104', name:'堕天せし者',         exp:'討伐・討滅戦', src:'古びた譜面（錬金:秘伝書1）'},
+  {id:'or105', name:'過重圧殺！',         exp:'討伐・討滅戦', src:'古びた譜面（錬金:秘伝書1）'},
+  {id:'or106', name:'善王モグル・モグXII世', exp:'討伐・討滅戦', src:'古びた譜面（錬金:秘伝書1）'},
+  {id:'or107', name:'死闘～蒼天～',       exp:'討伐・討滅戦', src:'GS：20,000MGP'},
+  {id:'or108', name:'忘却の彼方',         exp:'討伐・討滅戦', src:'古びた譜面（錬金:秘伝書2）'},
+  {id:'or109', name:'雷光雷鳴',           exp:'討伐・討滅戦', src:'古びた譜面（錬金:秘伝書2）'},
+  {id:'or110', name:'英雄の証～Monster Hunter：World version', exp:'討伐・討滅戦', src:'極リオレウス：火竜の上鱗×5'},
+  // --- レイド ---
+  {id:'or111', name:'破砕～クリスタルタワー：シルクスの塔～', exp:'レイド', src:'ID:クリスタルタワー：シルクスの塔'},
+  {id:'or112', name:'螺旋 ～大迷宮バハムート：邂逅編～',       exp:'レイド', src:'GS：30,000MGP'},
+  {id:'or113', name:'戦乱 ～大迷宮バハムート：侵攻編～',       exp:'レイド', src:'GS：30,000MGP'},
+  {id:'or114', name:'白銀の凶鳥、飛翔せり',                   exp:'レイド', src:'古びた譜面（錬金:秘伝書2）'},
+  {id:'or115', name:'贖いの果て～絶バハムート討滅戦～',        exp:'レイド', src:'アチーブメントスクリップ×2'},
+  {id:'or116', name:'約束の地 ～影の国ダン・スカー～',         exp:'レイド', src:'クロニクルクエスト'},
+  {id:'or117', name:'影法師 ～影の国ダン・スカー～',           exp:'レイド', src:'クロニクルクエスト'},
+  {id:'or118', name:'製造者責任 ～機工城アレキサンダー：起動編～', exp:'レイド', src:'クロニクルクエスト'},
+  {id:'or119', name:'ローカス ～機工城アレキサンダー：起動編～', exp:'レイド', src:'クロニクルクエスト'},
+  {id:'or120', name:'メタル ～機工城アレキサンダー：起動編～', exp:'レイド', src:'クロニクルクエスト'},
+  {id:'or121', name:'メタル：ブルートジャスティスモード',       exp:'レイド', src:'クロニクルクエスト'},
+  {id:'or122', name:'指数崩壊 ～機工城アレキサンダー：天動編～', exp:'レイド', src:'クロニクルクエスト'},
+  {id:'or123', name:'ライズ ～機工城アレキサンダー：天動編～', exp:'レイド', src:'クロニクルクエスト'},
+  {id:'or124', name:'Ultema the Nice Body',                   exp:'レイド', src:'ID:失われた都 ラバナスタ'},
+  {id:'or125', name:'主人公のテーマ',                         exp:'レイド', src:'クロニクルクエスト：ラバナスタ'},
+  {id:'or126', name:'Backbone Story',                         exp:'レイド', src:'クロニクルクエスト：ラバナスタ'},
+  {id:'or127', name:'ワールドマップ',                         exp:'レイド', src:'クロニクルクエスト：怪奇と幻想の島'},
+  {id:'or128', name:'A Chapel',                               exp:'レイド', src:'クロニクルクエスト：リドルアナ'},
+  {id:'or129', name:'Apoplexy',                               exp:'レイド', src:'ID:封じられた聖塔 リドルアナ'},
+  {id:'or130', name:'剣の一閃',                               exp:'レイド', src:'ID:封じられた聖塔 リドルアナ'},
+  {id:'or131', name:'Staff Credits',                          exp:'レイド', src:'クロニクルクエスト：オーボンヌ'},
+  {id:'or132', name:'アルマのテーマ',                         exp:'レイド', src:'クロニクルクエスト：オーボンヌ'},
+  {id:'or133', name:'Under The Stars',                        exp:'レイド', src:'ID:楽欲の僧院 オーボンヌ'},
+  {id:'or134', name:'Antipyretic',                            exp:'レイド', src:'ID:楽欲の僧院 オーボンヌ'},
+  {id:'or135', name:'Ultema The Perfect Body!',               exp:'レイド', src:'ID:楽欲の僧院 オーボンヌ'},
+  {id:'or136', name:'デルタスケープ ～次元の狭間オメガ：デルタ編～', exp:'レイド', src:'クロニクルクエスト'},
+  {id:'or137', name:'バトル2 ～次元の狭間オメガ：デルタ編～', exp:'レイド', src:'ID:オメガ：デルタ編1～3'},
+  {id:'or138', name:'エスケープ ～次元の狭間オメガ：アルファ編～', exp:'レイド', src:'ID:オメガ：アルファ編3'},
+  // --- 漆黒レイド ---
+  {id:'or139', name:'意味／無',                               exp:'漆黒レイド', src:'クロニクルクエスト：ニーア編'},
+  {id:'or140', name:'還ラナイ声／ギター',                     exp:'漆黒レイド', src:'クロニクルクエスト：ニーア編'},
+  {id:'or141', name:'崩壊ノ虚妄',                             exp:'漆黒レイド', src:'クロニクルクエスト：ニーア編'},
+  {id:'or142', name:'Blue Fields～漆黒～',                     exp:'漆黒レイド', src:'クロニクルクエスト：エデン編'},
+  {id:'or143', name:'輝ける蒼～希望の園エデン：覚醒編～',      exp:'漆黒レイド', src:'ID:エデン：覚醒編3'},
+  {id:'or144', name:'忘却の此方～希望の園エデン：共鳴編～',    exp:'漆黒レイド', src:'ID:エデン：共鳴編4'},
+  {id:'or145', name:'割レタ心',                               exp:'漆黒レイド', src:'クロニクルクエスト：ニーア再生編'},
+  {id:'or146', name:'遊園施設',                               exp:'漆黒レイド', src:'クロニクルクエスト：ニーア再生編'},
+  {id:'or147', name:'オバアチャン／破壊',                     exp:'漆黒レイド', src:'ID:人形タチノ軍事基地'},
+  {id:'or148', name:'異形ノ末路',                             exp:'漆黒レイド', src:'ID:人形タチノ軍事基地'},
+  {id:'or149', name:'天より降りし力～全テヲ破壊スル黒キ巨人',  exp:'漆黒レイド', src:'ID:人形タチノ軍事基地'},
+];
+
+// 取得済み初期値（スプレッドシートのTRUEデータから）
+if (!S.orchGot) {
+  S.orchGot = {};
+  // すべてのIDをデフォルト未取得にしてから、スプレッドシートTRUEに一致するものをONにする
+  const ORCH_GOT_INIT = ['or001','or002','or003','or004','or005','or006','or007','or008','or009','or010','or011','or012','or013','or014','or015','or016','or017','or018','or019','or020','or021','or022','or023','or024','or025','or026','or027','or028','or029','or030','or031','or032','or033','or034','or035','or036','or037','or038','or039','or040','or041','or042','or043','or044','or045','or046','or047','or048','or049','or050','or051','or052','or053','or054','or055','or056','or057','or058','or059','or060','or061','or062','or063','or064','or065','or066','or067','or068','or069','or070','or071','or072','or073','or074','or075','or076','or077','or078','or079','or080','or081','or082','or083','or084','or085','or086','or087','or088','or089','or090','or091','or092','or093','or094','or095','or096','or097','or098','or099','or100','or101','or102','or103','or104','or105','or106','or107','or108','or109','or110','or111','or112','or113','or114','or115','or116','or117','or118','or119','or120','or121','or122','or123','or124','or125','or126','or127','or128','or129','or130','or131','or132','or133','or134','or135','or136','or137','or138','or139','or140','or141','or142','or143','or144','or145','or146','or147','or148','or149'];
+  ORCH_GOT_INIT.forEach(id => { S.orchGot[id] = true; });
+}
+
+let orchExpFilter = 'all';
+let orchSearch = '';
+
+function renderOrchstrion() {
+  const exps = [...new Set(ORCH_ROLLS.map(r=>r.exp))];
+  const got = ORCH_ROLLS.filter(r=>S.orchGot[r.id]).length;
+
+  const filterRow = `<div class="filter-row" style="margin-bottom:8px">
+    ${['all',...exps].map(e=>`<button class="filter-btn${orchExpFilter===e?' active':''}" onclick="orchExpFilter='${e}';renderOrchstrion()">${e==='all'?'すべて':e}</button>`).join('')}
+  </div>
+  <div style="display:flex;gap:10px;margin-bottom:14px;align-items:center">
+    <input class="search-bar" style="max-width:300px;margin-bottom:0" placeholder="曲名 / 入手先で検索…"
+      value="${orchSearch}" oninput="orchSearch=this.value;renderOrchstrion()">
+    <span style="font-family:var(--mono);font-size:12px;color:var(--text3)">入手済み <b style="color:var(--green)">${got}</b>/${ORCH_ROLLS.length}</span>
+  </div>`;
+
+  const shown = ORCH_ROLLS.filter(r => {
+    if (orchExpFilter !== 'all' && r.exp !== orchExpFilter) return false;
+    if (orchSearch) {
+      const q = orchSearch.toLowerCase();
+      return r.name.toLowerCase().includes(q) || r.src.includes(q);
+    }
+    return true;
+  });
+
+  const sections = exps.filter(e=>orchExpFilter==='all'||e===orchExpFilter).map(exp => {
+    const group = shown.filter(r=>r.exp===exp);
+    if (!group.length) return '';
+    const expGot   = ORCH_ROLLS.filter(r=>r.exp===exp&&S.orchGot[r.id]).length;
+    const expTotal = ORCH_ROLLS.filter(r=>r.exp===exp).length;
+    const rows = group.map(r => `
+      <div class="todo-item${S.orchGot[r.id]?' done':''}" onclick="S.orchGot['${r.id}']=!S.orchGot['${r.id}'];save();renderOrchstrion()">
+        <div class="chk"><span class="chk-mark">✓</span></div>
+        <div style="flex:1">
+          <div class="ti-name">🎵 ${r.name}</div>
+          <div class="ti-sub">${r.src}</div>
+        </div>
+      </div>`).join('');
+    return `<div class="sec-title">${exp}<span class="sec-cnt"><b>${expGot}</b>/${expTotal}</span></div>
+            <div class="todo-grid">${rows}</div>`;
+  }).join('');
+
+  document.getElementById('tab-orchestrion').innerHTML = filterRow + (sections || '<div class="empty">条件に一致する譜面なし</div>');
+}
+
+// ==================== INIT ====================
+renderAll();
+</script>
+</body>
+</html>
