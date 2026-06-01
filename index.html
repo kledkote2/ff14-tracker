@@ -611,8 +611,9 @@ function renderJobs() {
     const rows = jobs.map(j => {
       const tier = S['tier_'+j.id] ?? j.tier;
       const td = TIERS.find(t=>t.v===tier) || TIERS[2];
-      const pct = Math.min(100, Math.round(j.lv/j.target*100));
-      const lvCls = j.lv>=100?'lv-gold':j.lv>=90?'lv-grn':j.lv>=70?'lv-blu':'lv-red';
+      const lv = S['lv_'+j.id] ?? j.lv;
+      const pct = Math.min(100, Math.round(lv/j.target*100));
+      const lvCls = lv>=100?'lv-gold':lv>=90?'lv-grn':lv>=70?'lv-blu':'lv-red';
       const rc = ROLE_COLOR[j.role];
 
       // Icon: img with onerror fallback to initials badge
@@ -639,7 +640,7 @@ function renderJobs() {
           <span class="role-badge r-${j.role}">${roleLabel[j.role]}</span>
         </td>
         <td style="white-space:nowrap">
-          <span class="lv-num">${j.lv}</span>
+          <span class="lv-num">${lv}</span>
           <span class="lv-bar-wrap"><span class="lv-bar ${lvCls}" style="width:${pct}%"></span></span>
         </td>
         <td style="font-family:var(--mono);font-size:12px;color:var(--text3)">${j.target}</td>
@@ -666,7 +667,46 @@ function renderJobs() {
       </table>`;
   });
 
-  document.getElementById('tab-jobs').innerHTML = html;
+  const btn = `<div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+    <button id="lodestone-btn" onclick="lodestoneSync()"
+      style="background:none;border:1px solid var(--border2);color:var(--text2);font-family:var(--mono);font-size:11px;padding:5px 12px;border-radius:4px;cursor:pointer;transition:all .12s"
+      onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text2)'">
+      ↓ Lodestoneから更新
+    </button>
+  </div>`;
+  document.getElementById('tab-jobs').innerHTML = btn + html;
+}
+
+const LODESTONE_ID = '28199963';
+const LODESTONE_NAME_MAP = {
+  'ナイト':'j_pld','戦士':'j_war','暗黒騎士':'j_drk','ガンブレイカー':'j_gnb',
+  '白魔道士':'j_whm','学者':'j_sch','占星術師':'j_ast','賢者':'j_sge',
+  '竜騎士':'j_drg','モンク':'j_mnk','侍':'j_sam','忍者':'j_nin',
+  'リーパー':'j_rpr','ヴァイパー':'j_vpr','吟遊詩人':'j_brd','機工士':'j_mch',
+  '踊り子':'j_dnc','黒魔道士':'j_blm','召喚士':'j_smn','赤魔道士':'j_rdm',
+  'ピクトマンサー':'j_pct','魔獣使い':'j_bst','青魔道士':'j_blu'
+};
+
+async function lodestoneSync() {
+  const btn = document.getElementById('lodestone-btn');
+  if (btn) btn.textContent = '↓ 取得中…';
+  try {
+    const res = await fetch(`${WORKER_URL}/lodestone/${LODESTONE_ID}`);
+    const data = await res.json();
+    if (!data.ok) throw new Error('failed');
+    let updated = 0;
+    for (const [name, lv] of Object.entries(data.jobs)) {
+      const id = LODESTONE_NAME_MAP[name];
+      if (id) { S['lv_'+id] = lv; updated++; }
+    }
+    save();
+    renderJobs();
+    if (btn) btn.textContent = `✓ ${updated}ジョブ更新`;
+    setTimeout(() => { if (btn) btn.textContent = '↓ Lodestoneから更新'; }, 3000);
+  } catch(e) {
+    if (btn) btn.textContent = '✕ 取得失敗';
+    setTimeout(() => { if (btn) btn.textContent = '↓ Lodestoneから更新'; }, 3000);
+  }
 }
 
 // ==================== WEAPONS ====================
