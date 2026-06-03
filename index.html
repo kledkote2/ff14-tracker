@@ -262,7 +262,7 @@ const TODOS_DEFAULT = [
   { id:'t07', cat:'コンテンツ', name:'黄金のレガシー 蛮族クエスト全種解放', sub:'Loporit / イル・メグ / アルカソーダラ等', type:'ongoing' },
   { id:'t08', cat:'コンテンツ', name:'7.xロールクエスト完走', sub:'タンク・ヒーラー・DPS各ロール', type:'once' },
   { id:'t09', cat:'コンテンツ', name:'7.xジョブクエスト・特性解放確認', sub:'80以上ジョブで未解放特性がないか点検', type:'once' },
-  { id:'t18', cat:'コンテンツ', name:'ピルグリムトラバース解放', sub:'', type:'once' },
+  { id:'t18', cat:'コンテンツ', name:'ピルグリムトラバース解放', sub:'クエスト：ケテンラム、最後の冒険 → 無人の町（蜃気楼の町）', type:'once' },
   { id:'t10', cat:'ID・ルーレット', name:'コンテンツルーレット日課セット', sub:'メインシナリオ / レベリング / 討伐・討滅', type:'weekly' },
   { id:'t11', cat:'ID・ルーレット', name:'黄金アライアンスレイド週課', sub:'ライト・ヘヴィウォーデン 週上限確認', type:'weekly' },
   { id:'t12', cat:'ID・ルーレット', name:'7.x装備最低ライン確認（IL710目安）', sub:'各ジョブ装備を確認して優先度を決める', type:'once' },
@@ -282,7 +282,7 @@ const TODOS_DEFAULT = [
   { id:'t_gc01', cat:'ギャザクラ', name:'ワチュメキ レベル上げ', sub:'採集素材の解放範囲拡大', type:'once' },
   { id:'t_gc02', cat:'ギャザクラ', name:'コスモエクスプローラ レベル上げ', sub:'採集素材の解放範囲拡大', type:'once' },
   // 期限あり
-  { id:'t_dl01', cat:'期限あり', name:'ファントムウェポン（戦士）', sub:'7.55コンテンツ / 7/28期限 / クレセントアイルと同一', type:'once' },
+  { id:'t_dl01', cat:'期限あり', name:'ファントムウェポン（戦士）', sub:'7.55コンテンツ / 2026/7/28期限 / クレセントアイル解放→3段階強化（デミアートマ→マギスフィアボード→クリスタルペースト1200個）', type:'once' },
   // 週次
   { id:'t_wk01', cat:'週次', name:'幻神龍', sub:'週1回', type:'weekly' },
   { id:'t_wk02', cat:'週次', name:'宝の地図', sub:'パーティ推奨', type:'weekly' },
@@ -1802,9 +1802,12 @@ const TRADE_PARTNERS = [
 ];
 const TRADE_MAX_HEARTS = 5;
 
-if (!S.tradeHearts) {
-  S.tradeHearts = {};
-  TRADE_PARTNERS.forEach(p => { S.tradeHearts[p.id] = 0; });
+const TRADE_INIT_HEARTS = { tr_marg:3, tr_anden:2, tr_ameri:5, tr_dura:5, tr_eltu:1, tr_kai:5, tr_adkira:5, tr_kurenai:5, tr_menago:4, tr_shiro:5 };
+if (!S.tradeHearts) S.tradeHearts = {};
+if (!S.tradeHeartsInited) {
+  // 初回のみスクショの初期値をセット（既存値を上書き）
+  TRADE_PARTNERS.forEach(p => { S.tradeHearts[p.id] = TRADE_INIT_HEARTS[p.id] ?? 0; });
+  S.tradeHeartsInited = true;
 }
 
 function tradeAdd(id, delta) {
@@ -1842,12 +1845,19 @@ function renderTrade() {
 
 // ==================== ファントムウェポン ====================
 const PHANTOM_STEPS = [
-  { id:'ph01', name:'クレセントアイル解放',       desc:'ピルグリムトラバース経由' },
-  { id:'ph02', name:'フィールドワーク開始',       desc:'各種素材収集・現地クエスト' },
-  { id:'ph03', name:'武器段階1（イノセント）',    desc:'' },
-  { id:'ph04', name:'武器段階2（オーギュスト）',  desc:'' },
-  { id:'ph05', name:'武器段階3（ドルイド）',      desc:'' },
-  { id:'ph06', name:'武器段階4（ファントム）',    desc:'最終段階' },
+  // 前提
+  { id:'ph00', name:'クレセントアイル解放',              desc:'クエスト：ケテンラム、最後の冒険 → 無人の町（蜃気楼の町）' },
+  // 第一段階：ペンアンブレー
+  { id:'ph01', name:'第1段階① デミアートマ集め',        desc:'6種×3個 / クレセントアイルCE・FATE or 黄金エリアFATE' },
+  { id:'ph02', name:'第1段階② 三日月鉱石×3',           desc:'アラガントームストーン数理1,500個' },
+  // 第二段階：アンブラ
+  { id:'ph03', name:'第2段階① 5種アイテム集め',         desc:'クエスト「古の匠たちの技術」/ ロネークにかわ・ウトォーム隕鉄・ダークマターα/β/γ' },
+  { id:'ph04', name:'第2段階② マギスフィアボード',       desc:'クエスト「属性の力秘めし魔道球」/ 討伐・ハイレベ・ノーマル・アライアンス各10,000pt' },
+  { id:'ph05', name:'第2段階③ 上弦鉱石×3',             desc:'アラガントームストーン数理1,500個 / クエスト「ファントムウェポンの強化」' },
+  // 第三段階：オブスキュラム
+  { id:'ph06', name:'第3段階① 4種アイテム集め',         desc:'クエスト「最適な技術を求めて」/ 霊性粘土・属性添加金属材・部材・合成樹脂' },
+  { id:'ph07', name:'第3段階② クリスタルペースト1,200個', desc:'ルーレット周回（レベリング等）/ 100→200→300→600個と段階納品' },
+  { id:'ph08', name:'第3段階③ 下弦鉱石×3',             desc:'アラガントームストーン数理1,500個' },
 ];
 
 if (S.phantomStep === undefined) S.phantomStep = 0;
