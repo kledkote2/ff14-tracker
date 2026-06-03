@@ -379,6 +379,9 @@ WEAPONS.forEach(w => {
 // TODOs: managed entirely in state
 if (!S.todos) S.todos = JSON.parse(JSON.stringify(TODOS_DEFAULT));
 if (!S.todoIdSeq) S.todoIdSeq = 100;
+// TODOS_DEFAULT に追加された項目をマージ（IDが存在しないものだけ追加）
+{ const existIds = new Set(S.todos.map(t=>t.id));
+  TODOS_DEFAULT.forEach(t => { if (!existIds.has(t.id)) S.todos.push(JSON.parse(JSON.stringify(t))); }); }
 // GLAMOURs: managed in state
 if (!S.glamours) S.glamours = JSON.parse(JSON.stringify(GLAMOURS_DEFAULT));
 if (!S.glamIdSeq) S.glamIdSeq = 100;
