@@ -739,12 +739,12 @@ async function lodestoneSync() {
 let weaponSort = 'role';
 
 function renderWeapons() {
-  const SC = {todo:'color:var(--red)',wip:'color:var(--gold)',done:'color:var(--green)'};
-  const SL = {todo:'未着手',wip:'仕掛中',done:'完了'};
-  // status sort order: wip first, then todo, then done
-  const SO = {wip:0, todo:1, done:2};
+  const SC = {todo:'color:var(--red)',wip:'color:var(--gold)',done:'color:var(--green)',perfect:'color:#c084fc'};
+  const SL = {todo:'未着手',wip:'仕掛中',done:'完了',perfect:'完璧'};
+  // status sort order: wip first, then todo, then done, then perfect
+  const SO = {wip:0, todo:1, done:2, perfect:3};
 
-  const doneCount = WEAPONS.filter(w=>(S['ws_'+w.id]||w.status)==='done').length;
+  const doneCount = WEAPONS.filter(w=>['done','perfect'].includes(S['ws_'+w.id]||w.status)).length;
 
   const sortBtns = `<div class="filter-row" style="margin-bottom:14px">
     <span style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-right:4px">並び順:</span>
@@ -775,7 +775,7 @@ function renderWeapons() {
       <td>
         <select class="status-sel" style="${SC[status]}"
           onchange="S['ws_${w.id}']=this.value;save();renderWeapons()">
-          ${['todo','wip','done'].map(s=>`<option value="${s}"${status===s?' selected':''}>${SL[s]}</option>`).join('')}
+          ${['todo','wip','done','perfect'].map(s=>`<option value="${s}"${status===s?' selected':''}>${SL[s]}</option>`).join('')}
         </select>
       </td>
       <td>
@@ -790,7 +790,7 @@ function renderWeapons() {
     const roleLabel = {tank:'TANK', healer:'HEALER', dps:'DPS'};
     ['tank','healer','dps'].forEach(role => {
       const group = WEAPONS.filter(w=>w.role===role);
-      const doneCnt = group.filter(w=>(S['ws_'+w.id]||w.status)==='done').length;
+      const doneCnt = group.filter(w=>['done','perfect'].includes(S['ws_'+w.id]||w.status)).length;
       html += `
         <div class="sec-title" style="margin-top:18px">${roleLabel[role]}
           <span class="sec-cnt"><b>${doneCnt}</b>/${group.length}</span>
@@ -801,10 +801,10 @@ function renderWeapons() {
         </table>`;
     });
   } else {
-    // group by status: wip → todo → done
-    const statusLabel = {wip:'仕掛中', todo:'未着手', done:'完了'};
-    const statusColor = {wip:'var(--gold)', todo:'var(--red)', done:'var(--green)'};
-    ['wip','todo','done'].forEach(st => {
+    // group by status: wip → todo → done → perfect
+    const statusLabel = {wip:'仕掛中', todo:'未着手', done:'完了', perfect:'完璧'};
+    const statusColor = {wip:'var(--gold)', todo:'var(--red)', done:'var(--green)', perfect:'#c084fc'};
+    ['wip','todo','done','perfect'].forEach(st => {
       const group = WEAPONS.filter(w=>(S['ws_'+w.id]||w.status)===st);
       if (!group.length) return;
       html += `
