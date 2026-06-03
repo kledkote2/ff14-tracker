@@ -465,7 +465,6 @@ async function cloudLoad() {
     }
     localStorage.setItem('ff14t_v3', JSON.stringify(S));
     setSyncStatus('ok');
-    renderAll();
   } catch(e) {
     setSyncStatus('error');
   }
@@ -1901,7 +1900,12 @@ function renderPhantom() {
 }
 
 // ==================== INIT ====================
-renderAll();
+// 起動時自動クラウドロード
+if (WORKER_URL) {
+  cloudLoad().then(() => renderAll());
+} else {
+  renderAll();
+}
 </script>
 </body>
 </html>
