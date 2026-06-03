@@ -1800,98 +1800,44 @@ const TRADE_PARTNERS = [
   { id:'tr_menago', name:'メ・ナーゴ',       exp:'黄金', dailyMax:6, emoji:'🧑' },
   { id:'tr_shiro',  name:'シロ・アリアポー', exp:'黄金', dailyMax:6, emoji:'🧑' },
 ];
-const TRADE_RANKS = ['未取引','見習い','一人前','熟練','親方'];
-const TRADE_RANK_THRESHOLDS = { '未取引':0, '見習い':0, '一人前':24, '熟練':48, '親方':72 };
-const TRADE_RANK_COLOR = { '未取引':'var(--text3)', '見習い':'#5b9bd5', '一人前':'#5bd58a', '熟練':'#c8a84b', '親方':'#f0d060' };
+const TRADE_MAX_HEARTS = 5;
 
-if (!S.tradeProgress) {
-  S.tradeProgress = {};
-  TRADE_PARTNERS.forEach(p => {
-    S.tradeProgress[p.id] = { rank:'未取引', todayCount:0, totalCount:0, lastDate:'' };
-  });
-}
-
-function tradeToday() { return new Date().toISOString().slice(0,10); }
-
-function calcTradeRank(total) {
-  const entries = Object.entries(TRADE_RANK_THRESHOLDS).reverse();
-  for (const [rank, th] of entries) { if (total >= th) return rank; }
-  return '未取引';
+if (!S.tradeHearts) {
+  S.tradeHearts = {};
+  TRADE_PARTNERS.forEach(p => { S.tradeHearts[p.id] = 0; });
 }
 
 function tradeAdd(id, delta) {
-  const p = S.tradeProgress[id];
-  const partner = TRADE_PARTNERS.find(x=>x.id===id);
-  const today = tradeToday();
-  if (delta > 0 && p.lastDate !== today) { p.todayCount = 0; p.lastDate = today; }
-  if (delta > 0) {
-    if (p.todayCount >= partner.dailyMax) return;
-    p.todayCount += delta;
-  }
-  p.totalCount = Math.max(0, p.totalCount + delta);
-  p.rank = calcTradeRank(p.totalCount);
+  const cur = S.tradeHearts[id] || 0;
+  S.tradeHearts[id] = Math.max(0, Math.min(TRADE_MAX_HEARTS, cur + delta));
   save(); renderTrade();
 }
 
 function renderTrade() {
-  const today = tradeToday();
-  const exps = [...new Set(TRADE_PARTNERS.map(p=>p.exp))];
-
   const total = TRADE_PARTNERS.length;
-  const master = TRADE_PARTNERS.filter(p=>S.tradeProgress[p.id]?.rank==='親方').length;
+  const maxed = TRADE_PARTNERS.filter(p=>(S.tradeHearts[p.id]||0)===TRADE_MAX_HEARTS).length;
 
   const header = `<div class="sec-title" style="margin-bottom:16px">
-    お得意様取引進捗
-    <span class="sec-cnt">親方 <b>${master}</b>/${total}</span>
+    お得意様取引 信頼ランク
+    <span class="sec-cnt">MAX <b>${maxed}</b>/${total}</span>
   </div>`;
 
-  const sections = exps.map(exp => {
-    const group = TRADE_PARTNERS.filter(p=>p.exp===exp);
-    const cards = group.map(p => {
-      const pr = S.tradeProgress[p.id] || { rank:'未取引', todayCount:0, totalCount:0, lastDate:'' };
-      const rank = pr.rank;
-      const color = TRADE_RANK_COLOR[rank] || 'var(--text3)';
-      const todayCount = pr.lastDate===today ? pr.todayCount : 0;
-      const todayDone = pr.lastDate===today && pr.todayCount >= p.dailyMax;
-      const nextTh = Object.values(TRADE_RANK_THRESHOLDS).find(th=>th>pr.totalCount) || 72;
-      const curTh = TRADE_RANK_THRESHOLDS[rank] || 0;
-      const inRankTotal = nextTh - curTh;
-      const inRankDone = pr.totalCount - curTh;
-      const pct = rank==='親方' ? 100 : Math.round(inRankDone/inRankTotal*100);
+  const cards = TRADE_PARTNERS.map(p => {
+    const hearts = S.tradeHearts[p.id] || 0;
+    const heartStr = '♥'.repeat(hearts) + '♡'.repeat(TRADE_MAX_HEARTS - hearts);
+    const color = hearts === TRADE_MAX_HEARTS ? '#f0d060' : hearts >= 3 ? '#c8a84b' : hearts >= 1 ? '#5b9bd5' : 'var(--text3)';
 
-      return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;transition:border-color .12s"
-        onmouseenter="this.style.borderColor='var(--border2)'" onmouseleave="this.style.borderColor='var(--border)'">
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:20px">${p.emoji}</span>
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:500">${p.name}</div>
-            <div style="font-size:11px;color:var(--text3);font-family:var(--mono)">${p.exp} &nbsp;·&nbsp; 1日${p.dailyMax}回</div>
-          </div>
-          <span style="font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:3px;border:1px solid;color:${color};border-color:${color}55;background:${color}11">${rank}</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <div style="flex:1">
-            <div style="height:4px;background:var(--bg4);border-radius:2px;overflow:hidden;margin-bottom:4px">
-              <div style="height:100%;width:${pct}%;background:${color};border-radius:2px;transition:width .3s"></div>
-            </div>
-            <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">${rank==='親方'?'MAX':inRankDone+'/'+inRankTotal} &nbsp;·&nbsp; 今日: ${todayCount}/${p.dailyMax}</div>
-          </div>
-          <button onclick="tradeAdd('${p.id}',${p.dailyMax})" ${todayDone?'disabled':''} style="font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:3px;border:1px solid var(--accent2);background:${todayDone?'var(--bg4)':'#0d1d35'};color:${todayDone?'var(--text3)':'var(--accent)'};cursor:${todayDone?'default':'pointer'}">${todayDone?'本日済':'+1日分'}</button>
-          <button onclick="tradeAdd('${p.id}',-1)" style="font-family:var(--mono);font-size:11px;padding:4px 8px;border-radius:3px;border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer">−</button>
-        </div>
-      </div>`;
-    }).join('');
-
-    const expMaster = group.filter(p=>S.tradeProgress[p.id]?.rank==='親方').length;
-    return `<div class="sec-title" style="margin-top:20px">${exp}
-      <span class="sec-cnt">親方 <b>${expMaster}</b>/${group.length}</span>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin-bottom:4px">
-      ${cards}
+    return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:12px 14px;display:flex;align-items:center;gap:12px;transition:border-color .12s"
+      onmouseenter="this.style.borderColor='var(--border2)'" onmouseleave="this.style.borderColor='var(--border)'">
+      <div style="font-size:13px;font-weight:500;flex:1">${p.name}</div>
+      <span style="font-size:16px;color:${color};letter-spacing:2px;font-family:serif">${heartStr}</span>
+      <button onclick="tradeAdd('${p.id}',1)" ${hearts>=TRADE_MAX_HEARTS?'disabled':''} style="font-family:var(--mono);font-size:13px;width:26px;height:26px;border-radius:50%;border:1px solid var(--accent2);background:${hearts>=TRADE_MAX_HEARTS?'var(--bg4)':'#0d1d35'};color:${hearts>=TRADE_MAX_HEARTS?'var(--text3)':'var(--accent)'};cursor:${hearts>=TRADE_MAX_HEARTS?'default':'pointer'};display:flex;align-items:center;justify-content:center">+</button>
+      <button onclick="tradeAdd('${p.id}',-1)" style="font-family:var(--mono);font-size:13px;width:26px;height:26px;border-radius:50%;border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>
     </div>`;
   }).join('');
 
-  document.getElementById('tab-trade').innerHTML = header + sections;
+  document.getElementById('tab-trade').innerHTML = header +
+    `<div style="display:flex;flex-direction:column;gap:6px">${cards}</div>`;
 }
 
 // ==================== ファントムウェポン ====================
