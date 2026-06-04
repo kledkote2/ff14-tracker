@@ -27,8 +27,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 .header{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100;}
 .logo{font-family:var(--mono);font-size:12px;color:var(--accent);letter-spacing:.1em;white-space:nowrap;}
 .logo span{color:var(--gold);}
-.nav{display:flex;gap:3px;flex:1;}
-.nav-btn{background:none;border:1px solid transparent;color:var(--text2);padding:5px 13px;border-radius:4px;cursor:pointer;font-family:var(--sans);font-size:13px;transition:all .12s;white-space:nowrap;}
+.nav{display:flex;gap:3px;flex:1;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.nav::-webkit-scrollbar{display:none;}
+.nav-btn{background:none;border:1px solid transparent;color:var(--text2);padding:5px 13px;border-radius:4px;cursor:pointer;font-family:var(--sans);font-size:13px;transition:all .12s;white-space:nowrap;flex-shrink:0;}
 .nav-btn:hover{color:var(--text);border-color:var(--border2);background:var(--bg3);}
 .nav-btn.active{color:var(--accent);border-color:var(--accent2);background:#0d1d35;}
 .gp{font-family:var(--mono);font-size:11px;color:var(--text3);white-space:nowrap;}
@@ -151,6 +152,17 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 .st-blue    {background:#1a1208;color:#e8c45b;border:1px solid #8a6a2a;}
 .st-end     {background:#1a0a2a;color:#c882e8;border:1px solid #7a3a8a;}
 #modal-body label{display:block;font-family:var(--mono);font-size:11px;color:var(--text3);margin-bottom:4px;}
+
+@media (max-width: 768px) {
+  .header{padding:8px 12px;gap:8px;}
+  .logo{font-size:11px;}
+  .main{padding:12px;}
+  .nav-btn{padding:5px 10px;font-size:12px;}
+  .job-tbl,.weapon-tbl{display:block;overflow-x:auto;}
+  .glamour-section{grid-template-columns:1fr;}
+  .sites-grid{grid-template-columns:1fr 1fr;}
+  #sync-status{display:none;}
+}
 </style>
 </head>
 <body>
@@ -283,6 +295,11 @@ const TODOS_DEFAULT = [
   { id:'t_gc02', cat:'ギャザクラ', name:'コスモエクスプローラ レベル上げ', sub:'採集素材の解放範囲拡大', type:'once' },
   // 期限あり
   { id:'t_dl01', cat:'期限あり', name:'ファントムウェポン（戦士）', sub:'7.55コンテンツ / 2026/7/28期限 / クレセントアイル解放→3段階強化（デミアートマ→マギスフィアボード→クリスタルペースト1200個）', type:'once' },
+  // 死者の宮殿・天獄聖殿
+  { id:'t_dd01', cat:'コンテンツ', name:'死者の宮殿 50階到達', sub:'ソロ可 / オーケストリオン・ミニオン入手', type:'once' },
+  { id:'t_dd02', cat:'コンテンツ', name:'死者の宮殿 100階到達', sub:'マウント：命の星砂', type:'once' },
+  { id:'t_dd03', cat:'コンテンツ', name:'天獄聖殿 30階到達', sub:'蒼天 / ミニオン入手', type:'once' },
+  { id:'t_dd04', cat:'コンテンツ', name:'フリム・ファルム 30階到達', sub:'紅蓮 / ミニオン入手', type:'once' },
   // 週次
   { id:'t_wk01', cat:'週次', name:'幻神龍', sub:'週1回', type:'weekly' },
   { id:'t_wk02', cat:'週次', name:'宝の地図', sub:'パーティ推奨', type:'weekly' },
@@ -932,12 +949,21 @@ function glamDeletePiece(gid, pi) {
 }
 
 // ==================== GLAMOUR RENDER ====================
+let glamFilter = 'all';
+
 function renderGlamour() {
+  const jobs = [...new Set(S.glamours.map(g=>g.job))];
+  const filterRow = `<div class="filter-row" style="margin-bottom:10px">
+    ${['all',...jobs].map(j=>`<button class="filter-btn${glamFilter===j?' active':''}" onclick="glamFilter='${j}';renderGlamour()">${j==='all'?'すべて':j}</button>`).join('')}
+  </div>`;
+
   const addBtn = `<div style="margin-bottom:14px">
     <button class="filter-btn" onclick="glamAddSet()" style="color:var(--green);border-color:var(--green2);background:#0d2a1a">＋ コーデを追加</button>
   </div>`;
 
-  const cards = S.glamours.map(g=>{
+  const shown = glamFilter === 'all' ? S.glamours : S.glamours.filter(g=>g.job===glamFilter);
+
+  const cards = shown.map(g=>{
     const dp = g.pieces.filter((_,i)=>S[g.id+'_p'+i]).length;
     const pieces = g.pieces.map((p,i)=>`
       <div class="glam-piece${S[g.id+'_p'+i]?' done':''}">
@@ -962,7 +988,7 @@ function renderGlamour() {
     </div>`;
   }).join('');
 
-  document.getElementById('tab-glamour').innerHTML = addBtn +
+  document.getElementById('tab-glamour').innerHTML = filterRow + addBtn +
     `<div class="glamour-section">${cards}</div>`;
 }
 
@@ -1743,6 +1769,7 @@ if (!S.orchGot) {
 
 let orchExpFilter = 'all';
 let orchSearch = '';
+let orchShowGot = false;
 
 function renderOrchstrion() {
   const exps = [...new Set(ORCH_ROLLS.map(r=>r.exp))];
@@ -1751,13 +1778,17 @@ function renderOrchstrion() {
   const filterRow = `<div class="filter-row" style="margin-bottom:8px">
     ${['all',...exps].map(e=>`<button class="filter-btn${orchExpFilter===e?' active':''}" onclick="orchExpFilter='${e}';renderOrchstrion()">${e==='all'?'すべて':e}</button>`).join('')}
   </div>
-  <div style="display:flex;gap:10px;margin-bottom:14px;align-items:center">
+  <div style="display:flex;gap:10px;margin-bottom:14px;align-items:center;flex-wrap:wrap">
     <input class="search-bar" style="max-width:300px;margin-bottom:0" placeholder="曲名 / 入手先で検索…"
       value="${orchSearch}" oninput="orchSearch=this.value;renderOrchstrion()">
     <span style="font-family:var(--mono);font-size:12px;color:var(--text3)">入手済み <b style="color:var(--green)">${got}</b>/${ORCH_ROLLS.length}</span>
+    <label class="show-done-toggle">
+      <input type="checkbox" ${orchShowGot?'checked':''} onchange="orchShowGot=this.checked;renderOrchstrion()"> 取得済みを表示
+    </label>
   </div>`;
 
   const shown = ORCH_ROLLS.filter(r => {
+    if (!orchShowGot && S.orchGot[r.id]) return false;
     if (orchExpFilter !== 'all' && r.exp !== orchExpFilter) return false;
     if (orchSearch) {
       const q = orchSearch.toLowerCase();
