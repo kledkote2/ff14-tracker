@@ -4,18 +4,21 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FF14 Tracker — こてつ</title>
-<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Zen+Maru+Gothic:wght@700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg:#0a0c0f;--bg2:#10141a;--bg3:#161c25;--bg4:#1c2533;
-  --border:#1e2d42;--border2:#2a3f5a;
-  --accent:#3d8bff;--accent2:#1a5cbf;
-  --gold:#c8a84b;--gold2:#8a7030;
-  --green:#2ecc71;--green2:#1a7a44;
-  --red:#e74c3c;--red2:#7a2020;
-  --text:#c8d4e4;--text2:#7a90aa;--text3:#4a5f75;
+  /* DESIGN.md ステージダーク準拠（2026-07-06リスキン・vaultroomビジュアル言語） */
+  --bg:#1C1626;--bg2:#241C30;--bg3:#2E2540;--bg4:#382E4A;
+  --border:#14110F;--border2:#3A324A;
+  --accent:#66CFF2;--accent2:#14110F;
+  --gold:#F5A623;--gold2:#8a6a1e;
+  --green:#4FA85C;--green2:#2f6e39;
+  --red:#F04F30;--red2:#7a2418;
+  --pink:#F27CA0;--apr:#F5B57C;--ink:#14110F;
+  --text:#F2F0EC;--text2:#B9AEC4;--text3:#8A7EA0;
   --mono:'Share Tech Mono',monospace;
   --sans:'Zen Kaku Gothic New',sans-serif;
+  --round:'Zen Maru Gothic','Zen Kaku Gothic New',sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;min-height:100vh;}
@@ -31,7 +34,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 .nav::-webkit-scrollbar{display:none;}
 .nav-btn{background:none;border:1px solid transparent;color:var(--text2);padding:5px 13px;border-radius:4px;cursor:pointer;font-family:var(--sans);font-size:13px;transition:all .12s;white-space:nowrap;flex-shrink:0;}
 .nav-btn:hover{color:var(--text);border-color:var(--border2);background:var(--bg3);}
-.nav-btn.active{color:var(--accent);border-color:var(--accent2);background:#0d1d35;}
+.nav-btn.active{color:var(--ink);border-color:var(--ink);background:var(--accent);box-shadow:2px 2px 0 var(--ink);font-weight:700;}
 .gp{font-family:var(--mono);font-size:11px;color:var(--text3);white-space:nowrap;}
 .gp b{color:var(--green);}
 
@@ -39,18 +42,47 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 .main{padding:18px 20px;max-width:1200px;margin:0 auto;}
 .tab-content{display:none;}
 .tab-content.active{display:block;}
+/* 収集タブ内サブナビ */
+.sub-nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;}
+.sub-btn{background:var(--bg3);border:2px solid var(--border);color:var(--text);padding:5px 15px;border-radius:9px;cursor:pointer;font-size:13px;font-weight:700;font-family:var(--sans);box-shadow:2px 2px 0 var(--ink);transition:transform .08s,box-shadow .08s;}
+.sub-btn:hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--ink);}
+.sub-btn.active{color:var(--ink);background:var(--accent);}
+.sub-content{display:none;}
+.sub-content.active{display:block;}
+/* 装備更新トラッカー（ジョブタブ） */
+.gear-legend{display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+.gear-wrap{overflow-x:auto;margin-bottom:18px;border:2px solid var(--border);border-radius:10px;box-shadow:4px 4px 0 var(--ink);}
+.gear-tbl{border-collapse:collapse;width:100%;font-size:12px;}
+.gear-tbl th{background:var(--bg3);color:var(--text2);font-family:var(--mono);font-size:10px;padding:6px 4px;white-space:nowrap;border-bottom:2px solid var(--border);text-align:center;}
+.gear-tbl td{padding:3px 4px;text-align:center;border-bottom:1px solid #2A2238;}
+.gear-tbl .gear-job{text-align:left;position:sticky;left:0;background:var(--bg2);white-space:nowrap;padding:5px 8px;z-index:1;border-right:2px solid var(--border);width:190px;}
+.gear-tbl th.gear-job{background:var(--bg3);}
+.gear-tbl .gear-job .job-icon-wrap{width:100%;}
+.gear-jn{font-size:13px;}
+.gear-cell{display:inline-block;border:2px solid var(--ink);border-radius:6px;color:var(--ink);font-weight:700;font-size:10px;padding:2px 6px;box-shadow:1px 1px 0 var(--ink);font-family:var(--sans);}
+.gear-sel{border:2px solid var(--ink);border-radius:6px;color:var(--ink);font-weight:700;font-size:10px;padding:2px 3px;cursor:pointer;box-shadow:1px 1px 0 var(--ink);min-width:70px;font-family:var(--sans);text-align:center;text-align-last:center;}
+.gear-sel:hover{box-shadow:2px 2px 0 var(--ink);}
+.gear-lv{font-family:var(--mono);font-size:11px;color:var(--text3);margin-left:auto;padding-left:8px;flex-shrink:0;}
+.gear-lv.lv-max{color:var(--gold);}
+.exp-arrow{color:var(--text3);font-size:10px;width:11px;flex-shrink:0;}
+.gear-exp>td{background:var(--bg3);padding:9px 14px;border-bottom:2px solid var(--border);position:sticky;left:0;}
+.gear-exp-inner{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.exp-lbl{font-family:var(--mono);font-size:11px;color:var(--text2);}
+.gear-exp-body{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;}
+.need-chip{background:var(--sky);color:var(--ink);border:2px solid var(--ink);border-radius:6px;padding:2px 8px;font-weight:700;font-size:11px;box-shadow:1px 1px 0 var(--ink);}
+.need-note{background:var(--mus);color:var(--ink);border:2px solid var(--ink);border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;box-shadow:1px 1px 0 var(--ink);}
 
 /* SECTION */
-.sec-title{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--text3);text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:7px;margin-bottom:10px;margin-top:22px;display:flex;justify-content:space-between;align-items:center;}
+.sec-title{font-family:var(--round);font-weight:900;font-size:15px;letter-spacing:.02em;color:var(--text);padding:4px 0 7px 11px;border-left:5px solid var(--accent);border-bottom:2px solid var(--border);margin-bottom:12px;margin-top:24px;display:flex;justify-content:space-between;align-items:center;}
 .sec-title:first-child{margin-top:0;}
 .sec-cnt{font-size:11px;color:var(--text3);}
 .sec-cnt b{color:var(--green);}
 
 /* FILTER ROW */
 .filter-row{display:flex;gap:5px;margin-bottom:12px;flex-wrap:wrap;align-items:center;}
-.filter-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:4px 11px;border-radius:3px;cursor:pointer;font-size:12px;font-family:var(--sans);transition:all .12s;}
-.filter-btn:hover{border-color:var(--border2);color:var(--text);}
-.filter-btn.active{border-color:var(--accent2);color:var(--accent);background:#0d1d35;}
+.filter-btn{background:var(--bg3);border:2px solid var(--border);color:var(--text);padding:4px 11px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;font-family:var(--sans);box-shadow:2px 2px 0 var(--ink);transition:transform .08s,box-shadow .08s;}
+.filter-btn:hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--ink);}
+.filter-btn.active{color:var(--ink);background:var(--accent);box-shadow:2px 2px 0 var(--ink);}
 .show-done-toggle{margin-left:auto;font-size:12px;color:var(--text3);display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;}
 .show-done-toggle input{accent-color:var(--accent);}
 
@@ -66,20 +98,20 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 .todo-item.done .chk-mark{display:block;}
 .ti-name{font-size:13px;color:var(--text);flex:1;}
 .ti-sub{font-size:11px;color:var(--text3);margin-top:1px;}
-.badge{font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:3px;flex-shrink:0;margin-top:2px;}
-.b-weekly{background:#0d1d35;color:var(--accent);border:1px solid var(--accent2);}
-.b-once{background:#0d2a1a;color:var(--green);border:1px solid var(--green2);}
-.b-ongoing{background:#2a1f08;color:var(--gold);border:1px solid var(--gold2);}
+.badge{font-family:var(--mono);font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;flex-shrink:0;margin-top:2px;color:var(--ink);border:2px solid var(--ink);box-shadow:2px 2px 0 var(--ink);}
+.b-weekly{background:var(--accent);}
+.b-once{background:var(--green);}
+.b-ongoing{background:var(--gold);}
 
 /* JOB TABLE */
 .job-tbl{width:100%;border-collapse:collapse;}
 .job-tbl th{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--text3);text-align:left;padding:6px 10px;border-bottom:1px solid var(--border);}
 .job-tbl td{padding:6px 10px;border-bottom:1px solid #0e1520;font-size:13px;vertical-align:middle;}
 .job-tbl tr:hover td{background:var(--bg3);}
-.role-badge{font-size:10px;padding:2px 6px;border-radius:2px;font-family:var(--mono);display:inline-block;}
-.r-tank  {background:#0d1a2a;color:#5b9bd5;border:1px solid #2a4a6a;}
-.r-healer{background:#0d2a1a;color:#5bd58a;border:1px solid #2a6a44;}
-.r-dps   {background:#2a0d0d;color:#d55b5b;border:1px solid #6a2a2a;}
+.role-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;font-family:var(--mono);display:inline-block;color:var(--ink);border:2px solid var(--ink);box-shadow:1px 1px 0 var(--ink);}
+.r-tank  {background:var(--sky);}
+.r-healer{background:var(--green);}
+.r-dps   {background:var(--red);}
 .lv-bar-wrap{width:70px;height:4px;background:var(--bg4);border-radius:2px;display:inline-block;vertical-align:middle;margin-left:5px;}
 .lv-bar{height:100%;border-radius:2px;transition:width .3s;}
 .lv-gold{background:var(--gold);}
@@ -104,7 +136,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 .weapon-tbl td{padding:6px 10px;border-bottom:1px solid #0e1520;font-size:13px;vertical-align:middle;}
 .weapon-tbl tr:hover td{background:var(--bg3);}
 .weapon-tbl tr.done-row{opacity:.35;}
-.status-sel{background:var(--bg4);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:3px 6px;border-radius:3px;cursor:pointer;transition:border-color .12s;}
+.status-sel{background:var(--bg4);border:2px solid var(--ink);color:var(--text);font-family:var(--mono);font-size:11px;padding:3px 6px;border-radius:6px;cursor:pointer;box-shadow:1px 1px 0 var(--ink);}
 .status-sel:hover{border-color:var(--border2);}
 .status-sel:focus{outline:none;border-color:var(--accent2);}
 .note-input{background:none;border:none;color:var(--text2);font-family:var(--sans);font-size:12px;width:100%;outline:none;border-bottom:1px solid transparent;transition:border-color .12s;}
@@ -113,7 +145,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 /* GLAMOUR */
 .glamour-section{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
 @media(max-width:700px){.glamour-section{grid-template-columns:1fr;}}
-.glam-card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.glam-card{background:var(--bg2);border:2px solid var(--ink);border-radius:10px;overflow:hidden;box-shadow:4px 4px 0 var(--ink);}
 .glam-header{background:var(--bg3);border-bottom:1px solid var(--border);padding:9px 13px;display:flex;align-items:center;gap:8px;}
 .glam-job{font-weight:700;font-size:14px;}
 .glam-cnt{font-family:var(--mono);font-size:11px;color:var(--text3);margin-left:auto;}
@@ -134,8 +166,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 .glam-piece.done .gp-chk-mark{display:block;}
 /* SITES */
 .sites-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;}
-.site-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;text-decoration:none;color:var(--text);display:flex;flex-direction:column;transition:all .15s;cursor:pointer;}
-.site-card:hover{border-color:var(--border2);background:var(--bg3);transform:translateY(-2px);}
+.site-card{background:var(--bg2);border:2px solid var(--ink);border-radius:10px;overflow:hidden;text-decoration:none;color:var(--text);display:flex;flex-direction:column;transition:transform .1s,box-shadow .1s;cursor:pointer;box-shadow:4px 4px 0 var(--ink);}
+.site-card:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--ink);}
 .site-thumb{width:100%;height:100px;object-fit:cover;display:block;background:var(--bg4);}
 .site-thumb-fb{width:100%;height:100px;display:flex;align-items:center;justify-content:center;font-size:32px;background:var(--bg4);flex-shrink:0;}
 .site-body{padding:10px 12px;flex:1;display:flex;flex-direction:column;gap:4px;}
@@ -143,14 +175,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 .site-url{font-family:var(--mono);font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .site-desc{font-size:12px;color:var(--text2);line-height:1.5;margin-top:2px;}
 .site-tag{font-family:var(--mono);font-size:10px;padding:1px 6px;border-radius:2px;display:inline-block;margin-top:auto;align-self:flex-start;}
-.st-wiki    {background:#0d1d35;color:var(--accent);border:1px solid var(--accent2);}
-.st-tool    {background:#0d2a1a;color:var(--green);border:1px solid var(--green2);}
-.st-market  {background:#2a1f08;color:var(--gold);border:1px solid var(--gold2);}
-.st-glam    {background:#2a0d2a;color:#c882e8;border:1px solid #7a3a8a;}
-.st-craft   {background:#0d2a2a;color:#5bd5d5;border:1px solid #2a6a6a;}
-.st-hunt    {background:#2a0d0d;color:var(--red);border:1px solid var(--red2);}
-.st-blue    {background:#1a1208;color:#e8c45b;border:1px solid #8a6a2a;}
-.st-end     {background:#1a0a2a;color:#c882e8;border:1px solid #7a3a8a;}
+.site-tag{color:var(--ink)!important;border:2px solid var(--ink)!important;box-shadow:1px 1px 0 var(--ink);font-weight:700;border-radius:6px;}
+.st-wiki    {background:var(--sky);}
+.st-tool    {background:var(--green);}
+.st-market  {background:var(--mus);}
+.st-glam    {background:var(--pink);}
+.st-craft   {background:var(--apr);}
+.st-hunt    {background:var(--red);}
+.st-blue    {background:var(--sky);}
+.st-end     {background:var(--pink);}
 #modal-body label{display:block;font-family:var(--mono);font-size:11px;color:var(--text3);margin-bottom:4px;}
 
 @media (max-width: 768px) {
@@ -175,14 +208,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
     <button class="nav-btn" onclick="switchTab('weapons',this)">光る武器</button>
     <button class="nav-btn" onclick="switchTab('glamour',this)">ミラプリ</button>
     <button class="nav-btn" onclick="switchTab('sites',this)">便利サイト</button>
-    <button class="nav-btn" onclick="switchTab('beast',this)">蛮族</button>
-    <button class="nav-btn" onclick="switchTab('bluemage',this)">青魔法</button>
-    <button class="nav-btn" onclick="switchTab('minion',this)">ミニオン</button>
-    <button class="nav-btn" onclick="switchTab('mount',this)">マウント</button>
-    <button class="nav-btn" onclick="switchTab('seals',this)">記章交換</button>
-    <button class="nav-btn" onclick="switchTab('orchestrion',this)">オーケストリオン</button>
-    <button class="nav-btn" onclick="switchTab('trade',this)">お得意様取引</button>
-    <button class="nav-btn" onclick="switchTab('phantom',this)">ファントム</button>
+    <button class="nav-btn" onclick="switchTab('collect',this)">収集</button>
   </nav>
   <div class="gp" id="gp">—</div>
   <span id="sync-status" style="font-family:var(--mono);font-size:11px;margin-left:8px"></span>
@@ -195,14 +221,20 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
   <div class="tab-content" id="tab-weapons"></div>
   <div class="tab-content" id="tab-glamour"></div>
   <div class="tab-content" id="tab-sites"></div>
-  <div class="tab-content" id="tab-beast"></div>
-  <div class="tab-content" id="tab-bluemage"></div>
-  <div class="tab-content" id="tab-minion"></div>
-  <div class="tab-content" id="tab-mount"></div>
-  <div class="tab-content" id="tab-seals"></div>
-  <div class="tab-content" id="tab-orchestrion"></div>
-  <div class="tab-content" id="tab-trade"></div>
-  <div class="tab-content" id="tab-phantom"></div>
+  <div class="tab-content" id="tab-collect">
+    <div class="sub-nav">
+      <button class="sub-btn active" onclick="switchSub('mount',this)">マウント</button>
+      <button class="sub-btn" onclick="switchSub('minion',this)">ミニオン</button>
+      <button class="sub-btn" onclick="switchSub('bluemage',this)">青魔法</button>
+      <button class="sub-btn" onclick="switchSub('orchestrion',this)">オーケストリオン</button>
+      <button class="sub-btn" onclick="switchSub('seals',this)">記章交換</button>
+    </div>
+    <div class="sub-content active" id="tab-mount"></div>
+    <div class="sub-content" id="tab-minion"></div>
+    <div class="sub-content" id="tab-bluemage"></div>
+    <div class="sub-content" id="tab-orchestrion"></div>
+    <div class="sub-content" id="tab-seals"></div>
+  </div>
 </div>
 
 <!-- MODAL -->
@@ -508,7 +540,15 @@ function switchTab(tab, btn) {
   if (btn) btn.classList.add('active');
 }
 
-function renderAll() { renderTodo(); renderJobs(); renderWeapons(); renderGlamour(); renderSites(); renderBeast(); renderBlueMage(); renderMinion(); renderMount(); renderSeals(); renderOrchstrion(); renderTrade(); renderPhantom(); renderGP(); }
+// 収集タブ内のサブ切替（マウント/ミニオン/青魔法/オーケストリオン/記章交換）
+function switchSub(id, btn) {
+  document.querySelectorAll('#tab-collect .sub-content').forEach(e => e.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  document.querySelectorAll('#tab-collect .sub-btn').forEach(e => e.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+
+function renderAll() { renderTodo(); renderJobs(); renderWeapons(); renderGlamour(); renderSites(); renderBlueMage(); renderMinion(); renderMount(); renderSeals(); renderOrchstrion(); renderGP(); }
 
 function renderGP() {
   const all = [
@@ -665,80 +705,82 @@ function renderTodo() {
 }
 
 // ==================== JOBS ====================
-function renderJobs() {
-  const roles = ['tank','healer','dps'];
-  const roleLabel = {tank:'TANK', healer:'HEALER', dps:'DPS'};
-  let html = '';
-
-  roles.forEach(role => {
-    const jobs = JOBS.filter(j=>j.role===role);
-    const rows = jobs.map(j => {
-      const tier = S['tier_'+j.id] ?? j.tier;
-      const td = TIERS.find(t=>t.v===tier) || TIERS[2];
-      const lv = S['lv_'+j.id] ?? j.lv;
-      const pct = Math.min(100, Math.round(lv/j.target*100));
-      const lvCls = lv>=100?'lv-gold':lv>=90?'lv-grn':lv>=70?'lv-blu':'lv-red';
-      const rc = ROLE_COLOR[j.role];
-
-      // Icon: img with onerror fallback to initials badge
-      const iconHtml = `
-        <img id="ico_${j.id}" src="${iconUrl(j.icon)}" width="26" height="26"
-          style="border-radius:50%;object-fit:cover;flex-shrink:0;display:block"
-          onerror="this.style.display='none';document.getElementById('fb_${j.id}').style.display='flex'">
-        <div id="fb_${j.id}" class="job-icon-fb" style="display:none;background:${rc}22;color:${rc};border-color:${rc}55">
-          ${j.abbr}
-        </div>`;
-
-      const tierOpts = TIERS.map(t=>
-        `<option value="${t.v}"${tier===t.v?' selected':''}>${t.v}. ${t.label}</option>`
-      ).join('');
-
-      return `<tr>
-        <td>
-          <div class="job-icon-wrap">
-            ${iconHtml}
-            <span>${j.name}</span>
-          </div>
-        </td>
-        <td style="white-space:nowrap">
-          <span class="role-badge r-${j.role}">${roleLabel[j.role]}</span>
-        </td>
-        <td style="white-space:nowrap">
-          <span class="lv-num">${lv}</span>
-          <span class="lv-bar-wrap"><span class="lv-bar ${lvCls}" style="width:${pct}%"></span></span>
-        </td>
-        <td style="font-family:var(--mono);font-size:12px;color:var(--text3)">${j.target}</td>
-        <td style="min-width:160px">
-          <select class="tier-sel" style="color:${td.color}"
-            onchange="S['tier_${j.id}']=parseInt(this.value);save();renderJobs()">
-            ${tierOpts}
-          </select>
-        </td>
-      </tr>`;
-    }).join('');
-
-    html += `
-      <div class="sec-title">${roleLabel[role]}</div>
-      <table class="job-tbl" style="margin-bottom:8px">
-        <tr>
-          <th style="width:160px">ジョブ</th>
-          <th style="width:90px">ロール</th>
-          <th style="width:140px">レベル</th>
-          <th style="width:60px">目標</th>
-          <th>Tier</th>
-        </tr>
-        ${rows}
-      </table>`;
+// ==================== 装備更新トラッカー ====================
+// 装備部位（11）
+const GSLOTS = [
+  {k:'wpn',n:'武器'},{k:'head',n:'頭'},{k:'body',n:'胴'},{k:'hands',n:'手'},{k:'legs',n:'脚'},{k:'feet',n:'足'},
+  {k:'ears',n:'耳'},{k:'neck',n:'首'},{k:'wrist',n:'腕'},{k:'ring1',n:'指①'},{k:'ring2',n:'指②'}
+];
+// 更新段階（パッチ7.5・Reisende Croco記事のILv・こてつ確認）。武器のみ最後にPW
+const GTIERS = [
+  {n:'100未満',c:'#9A938C'},{n:'新式',c:'#F5B57C'},{n:'新式RE',c:'#66CFF2'},{n:'記憶',c:'#F27CA0'},
+  {n:'アラ',c:'#4FA85C'},{n:'記憶RE',c:'#F5A623'},{n:'零式',c:'#F04F30'},{n:'PW',c:'#FFFFFF'}
+];
+const NO_GEAR = ['j_bst','j_blu']; // 魔獣使い・青魔＝制限ジョブ、装備管理せずレベルのみ
+const EXP = {}; // ジョブ展開状態（保存しない）
+// 部位カテゴリ＋必要素材テーブル（Reisende Croco記事・パッチ7.5）
+function slotCat(k){ if(k==='wpn')return'wpn'; if(k==='head'||k==='hands'||k==='feet')return'armA'; if(k==='body'||k==='legs')return'armB'; return'acc'; }
+const TOME={wpn:500,armA:495,armB:825,acc:375};
+const HONRAI={wpn:'奔雷の強化薬',armA:'奔雷の強化繊維',armB:'奔雷の強化繊維',acc:'奔雷の硬化薬'};
+const DANSHO={wpn:['第4片',8],armA:['第2片',4],armB:['第3片',6],acc:['第1片',3]};
+function computeGap(j){
+  const tgt=S['tgt_'+j.id]??6, need={}, notes=new Set(); let remain=0;
+  const add=(k,n)=>{need[k]=(need[k]||0)+n;};
+  GSLOTS.forEach(s=>{
+    const cur=S['gear_'+j.id+'_'+s.k]??0; if(cur>=tgt)return; remain++;
+    const cat=slotCat(s.k);
+    if(tgt===1) notes.add('新式は製作/購入');
+    else if(tgt===2) notes.add('新式RE＝手形G3＋強霊薬（数理の必要数は要確認）');
+    else if(tgt===3){ add('記憶トークン',TOME[cat]); if(cat==='wpn')add('汎用v3.0',1); }
+    else if(tgt===4) notes.add('アライアンス＝レイド周回（固定トークン要確認）');
+    else if(tgt===5){ if(cur<3){add('記憶トークン',TOME[cat]); if(cat==='wpn')add('汎用v3.0',1);} add(HONRAI[cat],1); }
+    else if(tgt===6){ const[p,n]=DANSHO[cat]; add('ヘビー級断章'+p,n); }
+    else if(tgt===7){ if(cat==='wpn'){notes.add('PW＝ファントムウェポン強化（別途）');} else {const[p,n]=DANSHO[cat]; add('ヘビー級断章'+p,n);} }
   });
-
-  const btn = `<div style="display:flex;justify-content:flex-end;margin-bottom:10px">
-    <button id="lodestone-btn" onclick="lodestoneSync()"
-      style="background:none;border:1px solid var(--border2);color:var(--text2);font-family:var(--mono);font-size:11px;padding:5px 12px;border-radius:4px;cursor:pointer;transition:all .12s"
-      onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text2)'">
-      ↓ Lodestoneから更新
-    </button>
-  </div>`;
-  document.getElementById('tab-jobs').innerHTML = btn + html;
+  return {tgt,need,notes:[...notes],remain};
+}
+function toggleJob(jid){ EXP[jid]=!EXP[jid]; renderJobs(); }
+function expandRow(j){
+  const {tgt,need,notes,remain}=computeGap(j);
+  const tgtSel=`<span class="exp-lbl">目標</span> <select class="gear-sel" style="background:${GTIERS[tgt].c};min-width:66px" onchange="S['tgt_${j.id}']=parseInt(this.value);save();renderJobs()">${GTIERS.map((g,i)=>i===0?'':`<option value="${i}"${i===tgt?' selected':''}>${g.n}</option>`).join('')}</select>`;
+  let body;
+  if(remain===0) body=`<span style="color:var(--green);font-weight:700">目標「${GTIERS[tgt].n}」達成！</span>`;
+  else {
+    const items=Object.entries(need).map(([k,v])=>`<span class="need-chip">${k} ×${v}</span>`).join('');
+    const noteHtml=notes.map(n=>`<span class="need-note">${n}</span>`).join('');
+    body=`<span style="color:var(--text2)">残り<b style="color:var(--text)">${remain}</b>部位 →</span> ${items} ${noteHtml}`;
+  }
+  return `<tr class="gear-exp"><td colspan="${GSLOTS.length+1}"><div class="gear-exp-inner">${tgtSel}<div class="gear-exp-body">${body}</div></div></td></tr>`;
+}
+function renderJobs() {
+  const roles=['tank','healer','dps'], roleLabel={tank:'TANK',healer:'HEALER',dps:'DPS'};
+  const legend=`<div class="gear-legend">${GTIERS.map(g=>`<span class="gear-cell" style="background:${g.c}">${g.n}</span>`).join('')}<span style="color:var(--text3);font-size:11px;margin-left:4px">部位で段階を選択・ジョブ名クリックで目標＆必要素材を展開</span></div>`;
+  const btn=`<div style="display:flex;justify-content:flex-end;margin-bottom:6px"><button id="lodestone-btn" class="filter-btn" style="font-size:11px" onclick="lodestoneSync()">↓ Lodestoneからレベル更新</button></div>`;
+  let html='';
+  roles.forEach(role=>{
+    const jobs=JOBS.filter(j=>j.role===role);
+    const rows=jobs.map(j=>{
+      const lv=S['lv_'+j.id]??j.lv, rc=ROLE_COLOR[j.role], noG=NO_GEAR.includes(j.id);
+      const icon=`<img src="${iconUrl(j.icon)}" width="22" height="22" style="border-radius:50%;object-fit:cover;flex-shrink:0" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="job-icon-fb" style="width:22px;height:22px;display:none;background:${rc}22;color:${rc};border-color:${rc}55">${j.abbr}</div>`;
+      const arrow=noG?'':`<span class="exp-arrow">${EXP[j.id]?'▾':'▸'}</span>`;
+      const jobCell=`<td class="gear-job"${noG?'':` style="cursor:pointer" onclick="toggleJob('${j.id}')"`}><div class="job-icon-wrap">${arrow}${icon}<span class="gear-jn">${j.name}</span><span class="gear-lv ${lv>=100?'lv-max':''}">Lv${lv}</span></div></td>`;
+      let cells;
+      if(noG){ cells=`<td colspan="${GSLOTS.length}" style="text-align:left;color:var(--text3);font-size:12px;padding-left:12px">装備管理外（レベルのみ）</td>`; }
+      else {
+        cells=GSLOTS.map(s=>{
+          const isW=s.k==='wpn', t=S['gear_'+j.id+'_'+s.k]??0, max=isW?7:6;
+          const opts=GTIERS.slice(0,max+1).map((g,i)=>`<option value="${i}"${i===t?' selected':''}>${g.n}</option>`).join('');
+          return `<td><select class="gear-sel" style="background:${GTIERS[t].c}" title="${s.n}" onchange="S['gear_${j.id}_${s.k}']=parseInt(this.value);save();renderJobs()">${opts}</select></td>`;
+        }).join('');
+      }
+      let tr=`<tr>${jobCell}${cells}</tr>`;
+      if(!noG && EXP[j.id]) tr+=expandRow(j);
+      return tr;
+    }).join('');
+    html+=`<div class="sec-title">${roleLabel[role]}</div>
+      <div class="gear-wrap"><table class="gear-tbl"><thead><tr><th class="gear-job">ジョブ</th>${GSLOTS.map(s=>`<th>${s.n}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
+  });
+  document.getElementById('tab-jobs').innerHTML = btn + legend + html;
 }
 
 const LODESTONE_ID = '28199963';
