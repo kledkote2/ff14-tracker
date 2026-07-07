@@ -85,9 +85,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 .gx-mit:focus{border-color:var(--accent);outline:none;}
 .gx-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:2px 5px;}
 .gx-del:hover{color:var(--red);}
-.gx-empty td{padding:3px 8px;border-bottom:1px solid #241D31;}
-.gx-empty .gx-time{font-size:10px;color:#5A5066;}
-.gx-empty:hover td{background:none;}
+.gx-notes{background:var(--bg2);border:1.5px solid var(--border2);border-radius:8px;padding:8px 12px;font-size:11.5px;color:var(--text2);line-height:1.6;margin-bottom:12px;}
 
 /* SECTION */
 .sec-title{font-family:var(--round);font-weight:900;font-size:15px;letter-spacing:.02em;color:var(--text);padding:4px 0 7px 11px;border-left:5px solid var(--accent);border-bottom:2px solid var(--border);margin-bottom:12px;margin-top:24px;display:flex;justify-content:space-between;align-items:center;}
@@ -866,24 +864,67 @@ async function lodestoneSync() {
 // タイムライン正本 = さんだる氏の予習表（X・2026-07取得）。w:0=通常 1=重要(太字) 2=ワイプ直結(赤)
 // 軽減メモ（ナイト/学者）はこてつが表内で直接編集 → S に保存（クラウド同期に乗る）
 const GX_BOSSES = [
-  { id:'valig',  n:'極ヴ',   full:'極ヴァリガルマンダ', c:'#F04F30' },
-  { id:'zoraal', n:'極ゾ',   full:'極ゾラージャ',       c:'#66CFF2' },
-  { id:'eq',     n:'極EQ',   full:'極エターナルクイーン', c:'#F5A623' },
-  { id:'zele',   n:'極ゼレ', full:'極ゼレニア',         c:'#F27CA0' },
-  { id:'yami',   n:'極闇',   full:'極闇',               c:'#a78bda' },
+  { id:'valig',  n:'極ヴ',   full:'極ヴァリガルマンダ', c:'#F04F30', src:'Chloria Tanner氏TL（時刻付き・雷先行時）' },
+  { id:'zoraal', n:'極ゾ',   full:'極ゾラージャ',       c:'#66CFF2', src:'さんだる氏予習表' },
+  { id:'eq',     n:'極EQ',   full:'極エターナルクイーン', c:'#F5A623', src:'さんだる氏予習表' },
+  { id:'zele',   n:'極ゼレ', full:'極ゼレニア',         c:'#F27CA0', src:'さんだる氏予習表' },
+  { id:'yami',   n:'極闇',   full:'極闇',               c:'#a78bda', src:'さんだる氏予習表' },
 ];
+const GX_NOTES = {
+  valig: '4:38／7:20のリビングディザスターは<b>雷か氷かランダム</b>（この表は雷先行時の時刻）。7:04カラミティダイヴ・9:46アイスタロン・7:20リビングディザスターの時刻は固定（前ギミックとの間隔で調整される）。楔フェーズのカラミティクライ（直線頭割り）は<b>楔を全滅させるまで繰り返し</b>。時間切れのトラルディザスターは2発目まで全体攻撃・<b>3発目で強制全滅</b>。',
+};
 const GX_TL = {
   valig: [
-    {t:'0:15',m:'アイシクルスパイク',w:0},
-    {t:'1:15',m:'ファイアディザスター',w:1},
-    {t:'1:30',m:'マウンテンファイア',w:0},
-    {t:'2:00',m:'トライスカージ（炎）',w:0},
-    {t:'2:45',m:'ファイアディザスター',w:1},
-    {t:'3:00',m:'トライスカージ（雷）',w:0},
-    {t:'3:15',m:'ディザスターサイン（楔）',w:0},
-    {t:'4:30',m:'リビングディザスター（雷 or 氷）',w:0},
-    {t:'4:45',m:'トライスカージ（炎）／（氷）',w:0},
-    {t:'5:00',m:'フェザーヘイル（羽）／雪崩',w:0},
+    {t:'0:19',m:'アイシクルスパイク',w:0},
+    {t:'0:47',m:'リビングディザスター（炎）',w:0},
+    {t:'0:56',m:'トライスカージ',w:0},
+    {t:'1:03',m:'火山',w:0},
+    {t:'1:16',m:'円/ドーナツ/扇',w:0},
+    {t:'1:18',m:'ファイアディザスター（2人割）',w:1},
+    {t:'1:39',m:'マウンテンファイア×6（5秒間隔）',w:0},
+    {t:'2:13',m:'スカージ・オブ・ファイア×3（3秒間隔）',w:0},
+    {t:'2:36',m:'火山',w:0},
+    {t:'2:47',m:'円/ドーナツ/扇',w:0},
+    {t:'2:49',m:'ファイアディザスター（2人割）',w:1},
+    {t:'2:59',m:'スカージ・オブ・サンダー（散開）',w:0},
+    {t:'3:08',m:'ディザスターゾーン',w:0},
+    {t:'3:16',m:'ディザスターサイン（楔出現）',w:0},
+    {t:'3:25',m:'カラミティクライ（6秒間隔）',w:0},
+    {t:'4:07',m:'トラルディザスター×3（8秒間隔）',w:0},
+    {t:'4:38',m:'リビングディザスター（雷）',w:0},
+    {t:'4:47',m:'トライスカージ',w:0},
+    {t:'4:59',m:'スカージ・オブ・ファイア（4人割）',w:0},
+    {t:'5:12',m:'フェザーヘイル×6（3秒間隔）※物理',w:0},
+    {t:'5:38',m:'災厄の落雷',w:0},
+    {t:'5:47',m:'スカージ・オブ・サンダー（4人）',w:0},
+    {t:'6:01',m:'円/ドーナツ/扇',w:0},
+    {t:'6:05',m:'タケノコ',w:0},
+    {t:'6:17',m:'サンダーブレス+ライトニングボルト',w:0},
+    {t:'6:27',m:'スカージ・オブ・サンダー（4人）',w:0},
+    {t:'6:43',m:'円/ドーナツ/扇',w:0},
+    {t:'6:46',m:'タケノコ',w:0},
+    {t:'6:52',m:'ディザスターゾーン',w:0},
+    {t:'7:04',m:'カラミティダイヴ（タンク）※物理',w:0},
+    {t:'7:06',m:'カラミティダイヴ（全体）※物理',w:0},
+    {t:'7:20',m:'リビングディザスター（氷）',w:0},
+    {t:'7:28',m:'トライスカージ',w:0},
+    {t:'7:40',m:'スカージ・オブ・アイス',w:0},
+    {t:'7:40',m:'スカージ・オブ・ファイア（3人割）',w:0},
+    {t:'7:58',m:'円/ドーナツ/扇+雪崩',w:0},
+    {t:'8:04',m:'コールドディザスター（米）',w:0},
+    {t:'8:12',m:'スカージ・オブ・サンダー（4人）',w:0},
+    {t:'8:29',m:'アイシクルスパイク',w:0},
+    {t:'8:40',m:'雪崩',w:0},
+    {t:'9:05',m:'円/ドーナツ/扇',w:0},
+    {t:'9:11',m:'コールドディザスター（米）',w:0},
+    {t:'9:19',m:'フリジングダスト',w:0},
+    {t:'9:29',m:'スカージ・オブ・サンダー（4人）',w:0},
+    {t:'9:37',m:'ディザスターゾーン',w:0},
+    {t:'9:46',m:'アイスタロン',w:0},
+    {t:'9:56',m:'ラース・アンフィールド',w:0},
+    {t:'10:14',m:'マウンテンファイア×6（5秒間隔）',w:0},
+    {t:'10:56',m:'トラルディザスター×3（8秒間隔）',w:0},
+    {t:'11:12',m:'時間切れ',w:2},
   ],
   zoraal: [
     {t:'0:15',m:'ルーズハーフ',w:0},
@@ -963,7 +1004,7 @@ function gxDelRow(key){
   if(!confirm('この行を削除する？'))return;
   let rows=[]; try{ rows=JSON.parse(S['gxrows_'+gxBoss]||'[]'); }catch(e){}
   S['gxrows_'+gxBoss]=JSON.stringify(rows.filter(r=>r.id!==key));
-  delete S['gxm_'+gxBoss+'_'+key+'_pld']; delete S['gxm_'+gxBoss+'_'+key+'_sch'];
+  delete S['gxm_'+gxBoss+'_'+key+'_pld']; delete S['gxm_'+gxBoss+'_'+key+'_sch']; delete S['gxm_'+gxBoss+'_'+key+'_memo'];
   save(); renderGogoku();
 }
 function renderGogoku(){
@@ -972,33 +1013,21 @@ function renderGogoku(){
   const bossChips = GX_BOSSES.map(b=>`<button class="filter-btn${b.id===gxBoss?' active':''}"${b.id===gxBoss?` style="background:${b.c}"`:''} onclick="gxBoss='${b.id}';renderGogoku()">${b.n}</button>`).join('');
   const roleChips = [['pld','ナイト'],['sch','学者'],['both','両方']].map(([k,l])=>`<button class="filter-btn${role===k?' active':''}" onclick="S['gx_role']='${k}';save();renderGogoku()">${l}</button>`).join('');
   const showPld = role==='pld'||role==='both', showSch = role==='sch'||role==='both';
-  const nCols = 1 + (showPld?1:0) + (showSch?1:0);
-  const events = gxRows(gxBoss);
-  const maxSec = Math.max(...events.map(r=>gxSec(r.t)).filter(v=>v<1e9), 0);
-  const evRow = r => {
+  const rows = gxRows(gxBoss).map(r=>{
     const cls = r.m.startsWith('（') ? 'gx-dim' : (r.w===2?'gx-w2':r.w===1?'gx-w1':'');
     const mit = rl => `<td><input class="gx-mit" value="${gxEsc(S['gxm_'+gxBoss+'_'+r.key+'_'+rl]??'')}" placeholder="—" onchange="gxSetMit('${gxBoss}','${r.key}','${rl}',this)"></td>`;
     const del = r.custom ? `<button class="gx-del" onclick="gxDelRow('${r.key}')" title="行を削除">✕</button>` : '';
-    return `<tr><td class="gx-time">${gxEsc(r.t)}</td><td class="${cls}">${gxEsc(r.m)}${del}</td>${showPld?mit('pld'):''}${showSch?mit('sch'):''}</tr>`;
-  };
-  // 15秒刻みの固定グリッド（元の予習表と同じ感覚）。イベントの無い枠は空行で時間の流れを見せる
-  let rows='', ei=0;
-  for(let sec=0; sec<=maxSec; sec+=15){
-    let hit=false;
-    while(ei<events.length && gxSec(events[ei].t)<=sec){ rows+=evRow(events[ei]); ei++; hit=true; }
-    if(!hit){
-      const t=Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0');
-      rows+=`<tr class="gx-empty"><td class="gx-time">${t}</td><td colspan="${nCols}"></td></tr>`;
-    }
-  }
-  while(ei<events.length){ rows+=evRow(events[ei]); ei++; }
+    return `<tr><td class="gx-time">${gxEsc(r.t)}</td><td class="${cls}">${gxEsc(r.m)}${del}</td>${showPld?mit('pld'):''}${showSch?mit('sch'):''}${mit('memo')}</tr>`;
+  }).join('');
+  const notes = GX_NOTES[gxBoss] ? `<div class="gx-notes">${GX_NOTES[gxBoss]}</div>` : '';
   document.getElementById('tab-gogoku').innerHTML = `
-    <div class="sec-title">黄金極攻略 <span style="font-size:11px;font-weight:400;color:var(--text3)">タイムライン正本＝さんだる氏予習表／<b>太字=重要</b>・<b style="color:var(--red)">赤=ワイプ直結</b>／軽減はセルを直接編集（自動保存）</span></div>
+    <div class="sec-title">黄金極攻略 <span style="font-size:11px;font-weight:400;color:var(--text3)"><b>太字=重要</b>・<b style="color:var(--red)">赤=ワイプ直結</b>／軽減・メモはセルを直接編集（自動保存）</span></div>
     <div class="filter-row" style="margin-bottom:8px">${bossChips}</div>
     <div class="filter-row" style="margin-bottom:12px"><span style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-right:4px">軽減列:</span>${roleChips}
       <button class="filter-btn" style="margin-left:auto" onclick="gxAddRow()">＋行を追加</button></div>
+    ${notes}
     <div class="gear-wrap"><table class="gx-tbl">
-      <thead><tr><th style="text-align:right">時間</th><th>${gxEsc(boss.full)}</th>${showPld?'<th>軽減（ナイト）</th>':''}${showSch?'<th>軽減（学者）</th>':''}</tr></thead>
+      <thead><tr><th style="text-align:right">時間</th><th>${gxEsc(boss.full)} <span style="font-weight:400;text-transform:none">｜ ${gxEsc(boss.src)}</span></th>${showPld?'<th>軽減（ナイト）</th>':''}${showSch?'<th>軽減（学者）</th>':''}<th>メモ</th></tr></thead>
       <tbody>${rows}</tbody>
     </table></div>`;
 }
