@@ -72,6 +72,20 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 .need-chip{background:var(--accent);color:var(--ink);border:2px solid var(--ink);border-radius:6px;padding:2px 8px;font-weight:700;font-size:11px;box-shadow:1px 1px 0 var(--ink);}
 .need-note{background:var(--gold);color:var(--ink);border:2px solid var(--ink);border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;box-shadow:1px 1px 0 var(--ink);}
 
+/* 黄金極攻略タブ */
+.gx-tbl{border-collapse:collapse;width:100%;font-size:13px;}
+.gx-tbl th{background:var(--bg3);color:var(--text2);font-family:var(--mono);font-size:10px;padding:7px 8px;white-space:nowrap;border-bottom:2px solid var(--border);text-align:left;}
+.gx-tbl td{padding:6px 8px;border-bottom:1px solid #2A2238;vertical-align:middle;}
+.gx-tbl tr:hover td{background:var(--bg2);}
+.gx-time{font-family:var(--mono);font-size:12px;color:var(--text3);white-space:nowrap;width:48px;text-align:right;padding-right:12px;}
+.gx-w1{font-weight:800;}
+.gx-w2{font-weight:800;color:var(--red);}
+.gx-dim{color:var(--text3);}
+.gx-mit{width:100%;min-width:150px;background:var(--bg3);border:1.5px solid var(--border2);border-radius:6px;color:var(--text);padding:4px 8px;font-size:12px;font-family:var(--sans);box-sizing:border-box;}
+.gx-mit:focus{border-color:var(--accent);outline:none;}
+.gx-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:2px 5px;}
+.gx-del:hover{color:var(--red);}
+
 /* SECTION */
 .sec-title{font-family:var(--round);font-weight:900;font-size:15px;letter-spacing:.02em;color:var(--text);padding:4px 0 7px 11px;border-left:5px solid var(--accent);border-bottom:2px solid var(--border);margin-bottom:12px;margin-top:24px;display:flex;justify-content:space-between;align-items:center;}
 .sec-title:first-child{margin-top:0;}
@@ -206,6 +220,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
     <button class="nav-btn active" onclick="switchTab('todo',this)">やることリスト</button>
     <button class="nav-btn" onclick="switchTab('jobs',this)">ジョブ</button>
     <button class="nav-btn" onclick="switchTab('weapons',this)">光る武器</button>
+    <button class="nav-btn" onclick="switchTab('gogoku',this)">黄金極</button>
     <button class="nav-btn" onclick="switchTab('glamour',this)">ミラプリ</button>
     <button class="nav-btn" onclick="switchTab('sites',this)">便利サイト</button>
     <button class="nav-btn" onclick="switchTab('collect',this)">収集</button>
@@ -219,6 +234,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
   <div class="tab-content active" id="tab-todo"></div>
   <div class="tab-content" id="tab-jobs"></div>
   <div class="tab-content" id="tab-weapons"></div>
+  <div class="tab-content" id="tab-gogoku"></div>
   <div class="tab-content" id="tab-glamour"></div>
   <div class="tab-content" id="tab-sites"></div>
   <div class="tab-content" id="tab-collect">
@@ -548,7 +564,7 @@ function switchSub(id, btn) {
   if (btn) btn.classList.add('active');
 }
 
-function renderAll() { renderTodo(); renderJobs(); renderWeapons(); renderGlamour(); renderSites(); renderBlueMage(); renderMinion(); renderMount(); renderSeals(); renderOrchstrion(); renderGP(); }
+function renderAll() { renderTodo(); renderJobs(); renderGogoku(); renderWeapons(); renderGlamour(); renderSites(); renderBlueMage(); renderMinion(); renderMount(); renderSeals(); renderOrchstrion(); renderGP(); }
 
 function renderGP() {
   const all = [
@@ -841,6 +857,133 @@ async function lodestoneSync() {
     if (btn) btn.textContent = '✕ 取得失敗';
     setTimeout(() => { if (btn) btn.textContent = '↓ Lodestoneから更新'; }, 3000);
   }
+}
+
+// ==================== 黄金極攻略 ====================
+// タイムライン正本 = さんだる氏の予習表（X・2026-07取得）。w:0=通常 1=重要(太字) 2=ワイプ直結(赤)
+// 軽減メモ（ナイト/学者）はこてつが表内で直接編集 → S に保存（クラウド同期に乗る）
+const GX_BOSSES = [
+  { id:'valig',  n:'極ヴ',   full:'極ヴァリガルマンダ', c:'#F04F30' },
+  { id:'zoraal', n:'極ゾ',   full:'極ゾラージャ',       c:'#66CFF2' },
+  { id:'eq',     n:'極EQ',   full:'極エターナルクイーン', c:'#F5A623' },
+  { id:'zele',   n:'極ゼレ', full:'極ゼレニア',         c:'#F27CA0' },
+  { id:'yami',   n:'極闇',   full:'極闇',               c:'#a78bda' },
+];
+const GX_TL = {
+  valig: [
+    {t:'0:15',m:'アイシクルスパイク',w:0},
+    {t:'1:15',m:'ファイアディザスター',w:1},
+    {t:'1:30',m:'マウンテンファイア',w:0},
+    {t:'2:00',m:'トライスカージ（炎）',w:0},
+    {t:'2:45',m:'ファイアディザスター',w:1},
+    {t:'3:00',m:'トライスカージ（雷）',w:0},
+    {t:'3:15',m:'ディザスターサイン（楔）',w:0},
+    {t:'4:30',m:'リビングディザスター（雷 or 氷）',w:0},
+    {t:'4:45',m:'トライスカージ（炎）／（氷）',w:0},
+    {t:'5:00',m:'フェザーヘイル（羽）／雪崩',w:0},
+  ],
+  zoraal: [
+    {t:'0:15',m:'ルーズハーフ',w:0},
+    {t:'0:45',m:'レジサイド',w:0},
+    {t:'1:15',m:'エッジ・ザ・ヴォロク',w:0},
+    {t:'1:45',m:'エンチャント・ゲートウェイ',w:0},
+    {t:'2:15',m:'ピット・オブ・ヴォロク',w:1},
+    {t:'2:45',m:'プロジェクション・エッジ',w:0},
+    {t:'3:30',m:'プロジェクション・バースト',w:2},
+    {t:'5:00',m:'ノック・オブ・ヴォロク',w:0},
+  ],
+  eq: [
+    {t:'0:15',m:'エーテルレヴィー',w:0},
+    {t:'1:00',m:'ヴァーチャルシフト（風）',w:0},
+    {t:'1:15',m:'ロウ・オブ・ウインド',w:1},
+    {t:'1:45',m:'プロセキューション・ウォー',w:0},
+    {t:'2:15',m:'ディバイド・アンド・コンカー',w:1},
+    {t:'2:30',m:'ヴァーチャルシフト（土）',w:0},
+    {t:'3:00',m:'塔踏み',w:1},
+    {t:'3:15',m:'グラビティエンパイア',w:2},
+    {t:'3:30',m:'メテオインパクト',w:2},
+    {t:'3:45',m:'グラビティブロウ',w:0},
+    {t:'4:30',m:'端末射出',w:1},
+    {t:'5:00',m:'アブソリュート・オーソリティ',w:1},
+    {t:'5:15',m:'（後半移行）',w:0},
+    {t:'5:30',m:'ラディカルシフト',w:1},
+    {t:'6:00',m:'ディメンショナル・ディストーション',w:0},
+    {t:'6:15',m:'クイーンズハンド',w:0},
+    {t:'6:30',m:'全体攻撃連打',w:0},
+  ],
+  zele: [
+    {t:'0:15',m:'ショック',w:1},
+    {t:'0:45',m:'スペクトルブレイク',w:0},
+    {t:'1:00',m:'クライムクロス（1回目）',w:1},
+    {t:'1:30',m:'聖護壁',w:1},
+    {t:'3:00',m:'魔法陣展開',w:0},
+    {t:'3:45',m:'魔法陣展開・二式',w:0},
+    {t:'4:30',m:'魔法陣展開・三式',w:1},
+    {t:'5:00',m:'クライムクロス（2回目）',w:2},
+    {t:'6:00',m:'魔法陣展開・四式',w:1},
+  ],
+  yami: [
+    {t:'0:00',m:'青の衝撃',w:0},
+    {t:'0:15',m:'死の恐怖',w:1},
+    {t:'0:30',m:'暗き死の腕',w:0},
+    {t:'0:45',m:'メメント・モリ',w:1},
+    {t:'1:00',m:'青き魂',w:1},
+    {t:'1:30',m:'死の恐怖＋導きの翼',w:1},
+    {t:'1:45',m:'青の衝撃',w:0},
+    {t:'2:15',m:'グランドクロス',w:1},
+    {t:'3:00',m:'ニュートンリング',w:0},
+    {t:'3:30',m:'（雑魚＋個室フェーズ）',w:0},
+    {t:'4:00',m:'闇の巨腕＋導きの翼',w:1},
+    {t:'4:30',m:'連なる青き魂',w:1},
+    {t:'5:30',m:'青の輪波',w:2},
+    {t:'6:00',m:'集団恐慌',w:1},
+    {t:'7:00',m:'青の輪波',w:0},
+  ],
+};
+let gxBoss = 'valig';
+const gxEsc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+const gxSec = t => { const p=String(t).split(':'); const v=parseInt(p[0],10)*60+(parseInt(p[1],10)||0); return isNaN(v)?1e9:v; };
+function gxRows(bid){
+  const base = GX_TL[bid].map((r,i)=>({key:'b'+i, t:r.t, m:r.m, w:r.w, custom:false}));
+  let extra=[]; try{ extra=JSON.parse(S['gxrows_'+bid]||'[]'); }catch(e){}
+  return base.concat(extra.map(r=>({key:r.id, t:r.t, m:r.m, w:0, custom:true}))).sort((a,b)=>gxSec(a.t)-gxSec(b.t));
+}
+function gxSetMit(bid,key,role,el){ S['gxm_'+bid+'_'+key+'_'+role]=el.value; save(); }
+function gxAddRow(){
+  const t=prompt('時間（例 3:15）'); if(t===null||!t.trim())return;
+  const m=prompt('技名'); if(m===null||!m.trim())return;
+  let rows=[]; try{ rows=JSON.parse(S['gxrows_'+gxBoss]||'[]'); }catch(e){}
+  rows.push({id:'c'+Date.now().toString(36), t:t.trim(), m:m.trim()});
+  S['gxrows_'+gxBoss]=JSON.stringify(rows); save(); renderGogoku();
+}
+function gxDelRow(key){
+  if(!confirm('この行を削除する？'))return;
+  let rows=[]; try{ rows=JSON.parse(S['gxrows_'+gxBoss]||'[]'); }catch(e){}
+  S['gxrows_'+gxBoss]=JSON.stringify(rows.filter(r=>r.id!==key));
+  delete S['gxm_'+gxBoss+'_'+key+'_pld']; delete S['gxm_'+gxBoss+'_'+key+'_sch'];
+  save(); renderGogoku();
+}
+function renderGogoku(){
+  const role = S['gx_role']||'pld';
+  const boss = GX_BOSSES.find(b=>b.id===gxBoss);
+  const bossChips = GX_BOSSES.map(b=>`<button class="filter-btn${b.id===gxBoss?' active':''}"${b.id===gxBoss?` style="background:${b.c}"`:''} onclick="gxBoss='${b.id}';renderGogoku()">${b.n}</button>`).join('');
+  const roleChips = [['pld','ナイト'],['sch','学者'],['both','両方']].map(([k,l])=>`<button class="filter-btn${role===k?' active':''}" onclick="S['gx_role']='${k}';save();renderGogoku()">${l}</button>`).join('');
+  const showPld = role==='pld'||role==='both', showSch = role==='sch'||role==='both';
+  const rows = gxRows(gxBoss).map(r=>{
+    const cls = r.m.startsWith('（') ? 'gx-dim' : (r.w===2?'gx-w2':r.w===1?'gx-w1':'');
+    const mit = rl => `<td><input class="gx-mit" value="${gxEsc(S['gxm_'+gxBoss+'_'+r.key+'_'+rl]??'')}" placeholder="—" onchange="gxSetMit('${gxBoss}','${r.key}','${rl}',this)"></td>`;
+    const del = r.custom ? `<button class="gx-del" onclick="gxDelRow('${r.key}')" title="行を削除">✕</button>` : '';
+    return `<tr><td class="gx-time">${gxEsc(r.t)}</td><td class="${cls}">${gxEsc(r.m)}${del}</td>${showPld?mit('pld'):''}${showSch?mit('sch'):''}</tr>`;
+  }).join('');
+  document.getElementById('tab-gogoku').innerHTML = `
+    <div class="sec-title">黄金極攻略 <span style="font-size:11px;font-weight:400;color:var(--text3)">タイムライン正本＝さんだる氏予習表／<b>太字=重要</b>・<b style="color:var(--red)">赤=ワイプ直結</b>／軽減はセルを直接編集（自動保存）</span></div>
+    <div class="filter-row" style="margin-bottom:8px">${bossChips}</div>
+    <div class="filter-row" style="margin-bottom:12px"><span style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-right:4px">軽減列:</span>${roleChips}
+      <button class="filter-btn" style="margin-left:auto" onclick="gxAddRow()">＋行を追加</button></div>
+    <div class="gear-wrap"><table class="gx-tbl">
+      <thead><tr><th style="text-align:right">時間</th><th>${gxEsc(boss.full)}</th>${showPld?'<th>軽減（ナイト）</th>':''}${showSch?'<th>軽減（学者）</th>':''}</tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
 }
 
 // ==================== WEAPONS ====================
