@@ -86,6 +86,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 .gx-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:2px 5px;}
 .gx-del:hover{color:var(--red);}
 .gx-notes{background:var(--bg2);border:1.5px solid var(--border2);border-radius:8px;padding:8px 12px;font-size:11.5px;color:var(--text2);line-height:1.6;margin-bottom:12px;}
+.gx-link{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:2px solid var(--border);border-radius:8px;padding:4px 10px;font-size:12px;font-weight:700;color:var(--accent);text-decoration:none;box-shadow:2px 2px 0 var(--ink);}
+.gx-link:hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--ink);}
+.gx-link .gx-del{padding:0 0 0 2px;}
 
 /* SECTION */
 .sec-title{font-family:var(--round);font-weight:900;font-size:15px;letter-spacing:.02em;color:var(--text);padding:4px 0 7px 11px;border-left:5px solid var(--accent);border-bottom:2px solid var(--border);margin-bottom:12px;margin-top:24px;display:flex;justify-content:space-between;align-items:center;}
@@ -1000,6 +1003,18 @@ function gxAddRow(){
   rows.push({id:'c'+Date.now().toString(36), t:t.trim(), m:m.trim()});
   S['gxrows_'+gxBoss]=JSON.stringify(rows); save(); renderGogoku();
 }
+function gxAddLink(){
+  const l=prompt('タイトル（例: 〇〇氏の解説動画）'); if(l===null||!l.trim())return;
+  const u=prompt('URL'); if(u===null||!u.trim())return;
+  let links=[]; try{ links=JSON.parse(S['gxlinks_'+gxBoss]||'[]'); }catch(e){}
+  links.push({id:'l'+Date.now().toString(36), l:l.trim(), u:u.trim()});
+  S['gxlinks_'+gxBoss]=JSON.stringify(links); save(); renderGogoku();
+}
+function gxDelLink(id){
+  if(!confirm('このリンクを削除する？'))return;
+  let links=[]; try{ links=JSON.parse(S['gxlinks_'+gxBoss]||'[]'); }catch(e){}
+  S['gxlinks_'+gxBoss]=JSON.stringify(links.filter(x=>x.id!==id)); save(); renderGogoku();
+}
 function gxDelRow(key){
   if(!confirm('この行を削除する？'))return;
   let rows=[]; try{ rows=JSON.parse(S['gxrows_'+gxBoss]||'[]'); }catch(e){}
@@ -1020,9 +1035,13 @@ function renderGogoku(){
     return `<tr><td class="gx-time">${gxEsc(r.t)}</td><td class="${cls}">${gxEsc(r.m)}${del}</td>${showPld?mit('pld'):''}${showSch?mit('sch'):''}${mit('memo')}</tr>`;
   }).join('');
   const notes = GX_NOTES[gxBoss] ? `<div class="gx-notes">${GX_NOTES[gxBoss]}</div>` : '';
+  let links=[]; try{ links=JSON.parse(S['gxlinks_'+gxBoss]||'[]'); }catch(e){}
+  const linkChips = links.map(x=>`<a class="gx-link" href="${gxEsc(x.u)}" target="_blank" rel="noopener">▶ ${gxEsc(x.l)}<button class="gx-del" onclick="event.preventDefault();gxDelLink('${x.id}')" title="削除">✕</button></a>`).join('');
   document.getElementById('tab-gogoku').innerHTML = `
     <div class="sec-title">黄金極攻略 <span style="font-size:11px;font-weight:400;color:var(--text3)"><b>太字=重要</b>・<b style="color:var(--red)">赤=ワイプ直結</b>／軽減・メモはセルを直接編集（自動保存）</span></div>
     <div class="filter-row" style="margin-bottom:8px">${bossChips}</div>
+    <div class="filter-row" style="margin-bottom:8px;align-items:center"><span style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-right:4px">参考:</span>${linkChips||'<span style="font-size:11px;color:var(--text3)">（解説動画・攻略ページをここに貼れる）</span>'}
+      <button class="filter-btn" onclick="gxAddLink()">＋リンク追加</button></div>
     <div class="filter-row" style="margin-bottom:12px"><span style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-right:4px">軽減列:</span>${roleChips}
       <button class="filter-btn" style="margin-left:auto" onclick="gxAddRow()">＋行を追加</button></div>
     ${notes}
