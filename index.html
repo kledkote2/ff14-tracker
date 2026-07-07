@@ -85,6 +85,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 .gx-mit:focus{border-color:var(--accent);outline:none;}
 .gx-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:2px 5px;}
 .gx-del:hover{color:var(--red);}
+.gx-empty td{padding:3px 8px;border-bottom:1px solid #241D31;}
+.gx-empty .gx-time{font-size:10px;color:#5A5066;}
+.gx-empty:hover td{background:none;}
 
 /* SECTION */
 .sec-title{font-family:var(--round);font-weight:900;font-size:15px;letter-spacing:.02em;color:var(--text);padding:4px 0 7px 11px;border-left:5px solid var(--accent);border-bottom:2px solid var(--border);margin-bottom:12px;margin-top:24px;display:flex;justify-content:space-between;align-items:center;}
@@ -969,12 +972,26 @@ function renderGogoku(){
   const bossChips = GX_BOSSES.map(b=>`<button class="filter-btn${b.id===gxBoss?' active':''}"${b.id===gxBoss?` style="background:${b.c}"`:''} onclick="gxBoss='${b.id}';renderGogoku()">${b.n}</button>`).join('');
   const roleChips = [['pld','ナイト'],['sch','学者'],['both','両方']].map(([k,l])=>`<button class="filter-btn${role===k?' active':''}" onclick="S['gx_role']='${k}';save();renderGogoku()">${l}</button>`).join('');
   const showPld = role==='pld'||role==='both', showSch = role==='sch'||role==='both';
-  const rows = gxRows(gxBoss).map(r=>{
+  const nCols = 1 + (showPld?1:0) + (showSch?1:0);
+  const events = gxRows(gxBoss);
+  const maxSec = Math.max(...events.map(r=>gxSec(r.t)).filter(v=>v<1e9), 0);
+  const evRow = r => {
     const cls = r.m.startsWith('（') ? 'gx-dim' : (r.w===2?'gx-w2':r.w===1?'gx-w1':'');
     const mit = rl => `<td><input class="gx-mit" value="${gxEsc(S['gxm_'+gxBoss+'_'+r.key+'_'+rl]??'')}" placeholder="—" onchange="gxSetMit('${gxBoss}','${r.key}','${rl}',this)"></td>`;
     const del = r.custom ? `<button class="gx-del" onclick="gxDelRow('${r.key}')" title="行を削除">✕</button>` : '';
     return `<tr><td class="gx-time">${gxEsc(r.t)}</td><td class="${cls}">${gxEsc(r.m)}${del}</td>${showPld?mit('pld'):''}${showSch?mit('sch'):''}</tr>`;
-  }).join('');
+  };
+  // 15秒刻みの固定グリッド（元の予習表と同じ感覚）。イベントの無い枠は空行で時間の流れを見せる
+  let rows='', ei=0;
+  for(let sec=0; sec<=maxSec; sec+=15){
+    let hit=false;
+    while(ei<events.length && gxSec(events[ei].t)<=sec){ rows+=evRow(events[ei]); ei++; hit=true; }
+    if(!hit){
+      const t=Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0');
+      rows+=`<tr class="gx-empty"><td class="gx-time">${t}</td><td colspan="${nCols}"></td></tr>`;
+    }
+  }
+  while(ei<events.length){ rows+=evRow(events[ei]); ei++; }
   document.getElementById('tab-gogoku').innerHTML = `
     <div class="sec-title">黄金極攻略 <span style="font-size:11px;font-weight:400;color:var(--text3)">タイムライン正本＝さんだる氏予習表／<b>太字=重要</b>・<b style="color:var(--red)">赤=ワイプ直結</b>／軽減はセルを直接編集（自動保存）</span></div>
     <div class="filter-row" style="margin-bottom:8px">${bossChips}</div>
