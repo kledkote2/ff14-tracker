@@ -717,6 +717,17 @@ const GTIERS = [
   {n:'アラ',c:'#4FA85C'},{n:'記憶RE',c:'#F5A623'},{n:'零式',c:'#F04F30'},{n:'PW',c:'#FFFFFF'}
 ];
 const NO_GEAR = ['j_bst','j_blu']; // 魔獣使い・青魔＝制限ジョブ、装備管理せずレベルのみ
+// 防具ロール（兼用単位）＝FF14の装備カテゴリ。同ロール内は防具・アクセを共用できる（武器のみジョブ固有）
+const AROLE = {
+  j_pld:'tank',   j_war:'tank',   j_drk:'tank',   j_gnb:'tank',
+  j_whm:'healer', j_sch:'healer', j_ast:'healer', j_sge:'healer',
+  j_blm:'caster', j_smn:'caster', j_rdm:'caster', j_pct:'caster',
+  j_brd:'ranged', j_mch:'ranged', j_dnc:'ranged',
+  j_mnk:'striker',j_sam:'striker',
+  j_drg:'slayer', j_rpr:'slayer',
+  j_nin:'scout',  j_vpr:'scout'
+};
+const AROLE_LABEL = {tank:'タンク',healer:'ヒーラー',caster:'キャスター',ranged:'レンジ',striker:'ストライカー',slayer:'スレイヤー',scout:'スカウト'};
 const EXP = {}; // ジョブ展開状態（保存しない）
 // 部位カテゴリ＋必要素材テーブル（Reisende Croco記事・パッチ7.5）
 function slotCat(k){ if(k==='wpn')return'wpn'; if(k==='head'||k==='hands'||k==='feet')return'armA'; if(k==='body'||k==='legs')return'armB'; return'acc'; }
@@ -740,9 +751,26 @@ function computeGap(j){
   return {tgt,need,notes:[...notes],remain};
 }
 function toggleJob(jid){ EXP[jid]=!EXP[jid]; renderJobs(); }
+// 防具・アクセ（武器を除く10部位）を同ロールの他ジョブへコピー
+function copyGear(jid){
+  const ar=AROLE[jid]; if(!ar) return;
+  const src=JOBS.find(j=>j.id===jid);
+  const targets=JOBS.filter(j=>AROLE[j.id]===ar && j.id!==jid && !NO_GEAR.includes(j.id));
+  if(!targets.length){ alert(`${AROLE_LABEL[ar]}に他のジョブがありません`); return; }
+  const names=targets.map(j=>j.name).join('・');
+  if(!confirm(`${src.name}の防具・アクセ（武器を除く）を ${AROLE_LABEL[ar]}の他ジョブ（${names}）へコピーします。\n各ジョブの現在の防具は上書きされます。よろしいですか？`)) return;
+  targets.forEach(t=>{
+    GSLOTS.forEach(s=>{
+      if(s.k==='wpn') return; // 武器はジョブ固有＝コピーしない
+      S['gear_'+t.id+'_'+s.k]=S['gear_'+jid+'_'+s.k]??0;
+    });
+  });
+  save(); renderJobs();
+}
 function expandRow(j){
   const {tgt,need,notes,remain}=computeGap(j);
   const tgtSel=`<span class="exp-lbl">目標</span> <select class="gear-sel" style="background:${GTIERS[tgt].c};min-width:66px" onchange="S['tgt_${j.id}']=parseInt(this.value);save();renderJobs()">${GTIERS.map((g,i)=>i===0?'':`<option value="${i}"${i===tgt?' selected':''}>${g.n}</option>`).join('')}</select>`;
+  const copyBtn=`<button class="filter-btn" style="font-size:11px;white-space:nowrap" title="武器を除く防具・アクセを同ロールの他ジョブへ複製" onclick="copyGear('${j.id}')">⧉ 防具を${AROLE_LABEL[AROLE[j.id]]||'同ロール'}にコピー</button>`;
   let body;
   if(remain===0) body=`<span style="color:var(--green);font-weight:700">目標「${GTIERS[tgt].n}」達成！</span>`;
   else {
@@ -750,7 +778,7 @@ function expandRow(j){
     const noteHtml=notes.map(n=>`<span class="need-note">${n}</span>`).join('');
     body=`<span style="color:var(--text2)">残り<b style="color:var(--text)">${remain}</b>部位 →</span> ${items} ${noteHtml}`;
   }
-  return `<tr class="gear-exp"><td colspan="${GSLOTS.length+1}"><div class="gear-exp-inner">${tgtSel}<div class="gear-exp-body">${body}</div></div></td></tr>`;
+  return `<tr class="gear-exp"><td colspan="${GSLOTS.length+1}"><div class="gear-exp-inner">${tgtSel}${copyBtn}<div class="gear-exp-body">${body}</div></div></td></tr>`;
 }
 function renderJobs() {
   const roles=['tank','healer','dps'], roleLabel={tank:'TANK',healer:'HEALER',dps:'DPS'};
