@@ -771,14 +771,14 @@ function computeGap(j){
   return {tgt,need,notes:[...notes],remain};
 }
 function toggleJob(jid){ EXP[jid]=!EXP[jid]; renderJobs(); }
-// 防具・アクセ（武器を除く10部位）を同ロールの他ジョブへコピー
+// 防具・アクセ（武器を除く10部位）を同ロールの他ジョブへコピー（Lv100未満のジョブは対象外＝低レベルジョブの装備欄を汚さない）
 function copyGear(jid){
   const ar=AROLE[jid]; if(!ar) return;
   const src=JOBS.find(j=>j.id===jid);
-  const targets=JOBS.filter(j=>AROLE[j.id]===ar && j.id!==jid && !NO_GEAR.includes(j.id));
-  if(!targets.length){ alert(`${AROLE_LABEL[ar]}に他のジョブがありません`); return; }
+  const targets=JOBS.filter(j=>AROLE[j.id]===ar && j.id!==jid && !NO_GEAR.includes(j.id) && (S['lv_'+j.id]??j.lv)>=100);
+  if(!targets.length){ alert(`${AROLE_LABEL[ar]}にLv100の他ジョブがありません（Lv100未満はコピー対象外）`); return; }
   const names=targets.map(j=>j.name).join('・');
-  if(!confirm(`${src.name}の防具・アクセ（武器を除く）を ${AROLE_LABEL[ar]}の他ジョブ（${names}）へコピーします。\n各ジョブの現在の防具は上書きされます。よろしいですか？`)) return;
+  if(!confirm(`${src.name}の防具・アクセ（武器を除く）を ${AROLE_LABEL[ar]}のLv100ジョブ（${names}）へコピーします。\n※Lv100未満のジョブは対象外です。\n各ジョブの現在の防具は上書きされます。よろしいですか？`)) return;
   targets.forEach(t=>{
     GSLOTS.forEach(s=>{
       if(s.k==='wpn') return; // 武器はジョブ固有＝コピーしない
@@ -790,7 +790,7 @@ function copyGear(jid){
 function expandRow(j){
   const {tgt,need,notes,remain}=computeGap(j);
   const tgtSel=`<span class="exp-lbl">目標</span> <select class="gear-sel" style="background:${GTIERS[tgt].c};min-width:66px" onchange="S['tgt_${j.id}']=parseInt(this.value);save();renderJobs()">${GTIERS.map((g,i)=>i===0?'':`<option value="${i}"${i===tgt?' selected':''}>${g.n}</option>`).join('')}</select>`;
-  const copyBtn=`<button class="filter-btn" style="font-size:11px;white-space:nowrap" title="武器を除く防具・アクセを同ロールの他ジョブへ複製" onclick="copyGear('${j.id}')">⧉ 防具を${AROLE_LABEL[AROLE[j.id]]||'同ロール'}にコピー</button>`;
+  const copyBtn=`<button class="filter-btn" style="font-size:11px;white-space:nowrap" title="武器を除く防具・アクセを同ロールのLv100ジョブへ複製（Lv100未満は対象外）" onclick="copyGear('${j.id}')">⧉ 防具を${AROLE_LABEL[AROLE[j.id]]||'同ロール'}にコピー</button>`;
   let body;
   if(remain===0) body=`<span style="color:var(--green);font-weight:700">目標「${GTIERS[tgt].n}」達成！</span>`;
   else {
