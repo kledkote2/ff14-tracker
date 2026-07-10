@@ -1386,6 +1386,7 @@ function gjShow(key) {
 
 // ==================== GLAMOUR RENDER ====================
 let glamFilter = 'all';
+let glamView = 'set'; // 'set'=コーデ別 / 'piece'=部位別
 
 function renderGlamour() {
   // --- ジョブ別ミラプリ（全ジョブ固定枠・スクショ＋メモ） ---
@@ -1425,7 +1426,46 @@ function renderGlamour() {
     <button class="filter-btn" onclick="glamAddSet()" style="color:var(--green);border-color:var(--green2);background:#0d2a1a">＋ コーデを追加</button>
   </div>`;
 
+  const viewRow = `<div style="display:flex;gap:6px;margin-bottom:10px">
+    <button class="filter-btn${glamView==='set'?' active':''}" onclick="glamView='set';renderGlamour()">コーデ別</button>
+    <button class="filter-btn${glamView==='piece'?' active':''}" onclick="glamView='piece';renderGlamour()">部位別</button>
+  </div>`;
+
   const shown = glamFilter === 'all' ? S.glamours : S.glamours.filter(g=>g.job===glamFilter);
+
+  // --- 部位別ビュー: 全コーデの部位を SLOTS 軸でピボット ---
+  if (glamView === 'piece') {
+    const extraSlots = [...new Set(shown.flatMap(g=>g.pieces.map(p=>p.slot)))].filter(s=>!SLOTS.includes(s));
+    const slotCards = [...SLOTS, ...extraSlots].map(slot => {
+      const rows = [];
+      shown.forEach(g => g.pieces.forEach((p, i) => { if (p.slot === slot) rows.push({ g, p, i }); }));
+      if (!rows.length) return '';
+      const done = rows.filter(r => S[r.g.id+'_p'+r.i]).length;
+      const items = rows.map(({ g, p, i }) => `
+        <div class="glam-piece${S[g.id+'_p'+i]?' done':''}">
+          <div class="gp-chk" onclick="toggle('${g.id}_p${i}')" style="cursor:pointer"><span class="gp-chk-mark">✓</span></div>
+          <span class="gp-slot" style="cursor:pointer" onclick="toggle('${g.id}_p${i}')" title="コーデ">${g.job}</span>
+          <div style="flex:1;cursor:pointer" onclick="toggle('${g.id}_p${i}')">
+            <div class="gp-name">${p.name}</div>
+            ${p.color!=='デフォルト'||p.source?`<div class="gp-src">${[p.color!=='デフォルト'?p.color:'',p.source||''].filter(Boolean).join(' / ')}</div>`:''}
+          </div>
+          <button onclick="glamEditPiece('${g.id}',${i})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:0 4px" title="部位を編集">✎</button>
+        </div>`).join('');
+      return `<div class="glam-card">
+        <div class="glam-header">
+          <span class="glam-job">${slot}</span>
+          <span class="glam-cnt"><b>${done}</b>/${rows.length}</span>
+        </div>
+        <div>${items}</div>
+      </div>`;
+    }).filter(Boolean).join('');
+
+    document.getElementById('tab-glamour').innerHTML = gjSection +
+      `<div style="font-weight:700;font-size:15px;margin:22px 0 10px;padding-top:14px;border-top:1px solid var(--border)">コーデ（部位トラッカー）</div>` +
+      viewRow + filterRow +
+      (slotCards ? `<div class="glamour-section">${slotCards}</div>` : '<div class="empty">部位が登録されていない</div>');
+    return;
+  }
 
   const cards = shown.map(g=>{
     const dp = g.pieces.filter((_,i)=>S[g.id+'_p'+i]).length;
@@ -1454,7 +1494,7 @@ function renderGlamour() {
 
   document.getElementById('tab-glamour').innerHTML = gjSection +
     `<div style="font-weight:700;font-size:15px;margin:22px 0 10px;padding-top:14px;border-top:1px solid var(--border)">コーデ（部位トラッカー）</div>` +
-    filterRow + addBtn +
+    viewRow + filterRow + addBtn +
     `<div class="glamour-section">${cards}</div>`;
 }
 
