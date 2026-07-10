@@ -166,6 +166,18 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 .glam-card{background:var(--bg2);border:2px solid var(--ink);border-radius:10px;overflow:hidden;box-shadow:4px 4px 0 var(--ink);}
 .glam-header{background:var(--bg3);border-bottom:1px solid var(--border);padding:9px 13px;display:flex;align-items:center;gap:8px;}
 .glam-job{font-weight:700;font-size:14px;}
+/* ジョブ別ミラプリ（スクショ枠） */
+.gj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;}
+.gj-card{background:var(--bg2);border:2px solid var(--ink);border-radius:10px;overflow:hidden;box-shadow:4px 4px 0 var(--ink);display:flex;flex-direction:column;}
+.gj-head{display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--bg3);border-bottom:1px solid var(--border);}
+.gj-head img{width:20px;height:20px;flex:none;}
+.gj-name{font-weight:700;font-size:12px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.gj-img{position:relative;aspect-ratio:3/4;background:var(--bg3);cursor:pointer;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.gj-img img{width:100%;height:100%;object-fit:cover;display:block;}
+.gj-img:hover .gj-empty{color:var(--accent);}
+.gj-empty{color:var(--text3);font-size:11.5px;font-weight:700;text-align:center;line-height:1.6;padding:8px;}
+.gj-memo{font-size:11px;color:var(--text2);padding:5px 8px;min-height:24px;cursor:pointer;border-top:1px solid var(--border);white-space:pre-wrap;word-break:break-word;}
+.gj-memo.empty{color:var(--text3);}
 .glam-cnt{font-family:var(--mono);font-size:11px;color:var(--text3);margin-left:auto;}
 .glam-cnt b{color:var(--green);}
 .glam-url{font-family:var(--mono);font-size:10px;color:var(--accent);text-decoration:none;}
@@ -462,6 +474,8 @@ if (!Array.isArray(S.deletedTodoIds)) S.deletedTodoIds = [];
 // GLAMOURs: managed in state
 if (!S.glamours) S.glamours = JSON.parse(JSON.stringify(GLAMOURS_DEFAULT));
 if (!S.glamIdSeq) S.glamIdSeq = 100;
+// ジョブ別ミラプリ（スクショ＋メモ）: { <jobKey>: { img:dataURL, memo:'', updated:'YYYY-MM-DD' } }
+if (!S.glamJobs || typeof S.glamJobs !== 'object') S.glamJobs = {};
 // Weekly reset tracking: store ISO week string "YYYY-Www"
 function isoWeek() {
   const d = new Date();
@@ -483,7 +497,8 @@ let syncStatus = 'idle'; // idle / syncing / ok / error
 let syncTimer = null;
 
 function save() {
-  localStorage.setItem('ff14t_v3', JSON.stringify(S));
+  try { localStorage.setItem('ff14t_v3', JSON.stringify(S)); }
+  catch(e) { alert('ブラウザ保存の容量を超えた（ミラプリ画像の入れすぎが原因の可能性）。どれか画像を削除してください。クラウド同期は継続します'); }
   // Worker URLが設定されていたら自動クラウド同期（debounce 2秒）
   if (WORKER_URL) {
     clearTimeout(syncTimer);
@@ -680,6 +695,9 @@ function purgeDoneTodos() {
 
 function closeModal() {
   document.getElementById('modal-overlay').style.display = 'none';
+  gjPasteTarget = null;
+  const sb = document.getElementById('modal-save-btn');
+  if (sb) sb.style.display = '';
 }
 
 // ==================== TODO RENDER ====================
@@ -1248,10 +1266,156 @@ function glamDeletePiece(gid, pi) {
   save(); closeModal(); renderGlamour(); renderGP();
 }
 
+// ==================== GLAMOUR JOB SLOTS（ジョブ別ミラプリ・スクショ＋メモ） ====================
+const GLAM_JOBS = [
+  ...JOBS.map(j => ({ key: j.id, name: j.name, icon: j.icon, role: j.role })),
+  { key: 'j_gath', name: '採掘&園芸師', icon: 'miner',     role: 'gath' },
+  { key: 'j_fsh',  name: '漁師',        icon: 'fisher',    role: 'gath' },
+  { key: 'j_crf',  name: 'クラフター',  icon: 'carpenter', role: 'craft' },
+];
+const GJ_ROLES = [['tank','タンク'],['healer','ヒーラー'],['dps','DPS'],['gath','ギャザラー'],['craft','クラフター']];
+let gjPasteTarget = null;
+
+function gjEsc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// WebPエンコード可否（iOS SafariはJPEGへフォールバック）
+const GJ_FMT = (() => {
+  try { return document.createElement('canvas').toDataURL('image/webp').indexOf('data:image/webp') === 0 ? 'image/webp' : 'image/jpeg'; }
+  catch(e) { return 'image/jpeg'; }
+})();
+
+// クライアント側で縮小圧縮（目標 ≤110KB/枚 — localStorage 5MB と同期ペイロードを守る）
+async function gjCompress(blob) {
+  const bmp = await createImageBitmap(blob);
+  const tries = [[1024, .8], [1024, .62], [860, .55], [720, .48]];
+  let out = null;
+  for (const [dim, q] of tries) {
+    const scale = Math.min(1, dim / Math.max(bmp.width, bmp.height));
+    const w = Math.max(1, Math.round(bmp.width * scale)), h = Math.max(1, Math.round(bmp.height * scale));
+    const cv = document.createElement('canvas');
+    cv.width = w; cv.height = h;
+    cv.getContext('2d').drawImage(bmp, 0, 0, w, h);
+    out = cv.toDataURL(GJ_FMT, q);
+    if (out.length < 150000) break;
+  }
+  return out;
+}
+
+function gjPickImage(key) {
+  const j = GLAM_JOBS.find(x => x.key === key);
+  if (!j) return;
+  gjPasteTarget = key;
+  const cur = S.glamJobs[key];
+  document.getElementById('modal-title').textContent = j.name + ' — スクショ';
+  document.getElementById('modal-body').innerHTML = `
+    <div id="gj-drop" style="border:2px dashed var(--border2);border-radius:8px;padding:26px 12px;text-align:center;color:var(--text2);font-size:12.5px;line-height:1.8;cursor:pointer;margin-bottom:10px">
+      <b>ここをタップしてファイル選択</b><br>PCなら このまま <b>Ctrl+V</b> 貼り付け／ドラッグ&ドロップもOK<br><span style="color:var(--text3);font-size:11px">自動で縮小圧縮して保存（クラウド同期対応）</span>
+    </div>
+    <input type="file" id="gj-file" accept="image/*" style="display:none">
+    <div id="gj-status" style="font-size:11.5px;color:var(--text3);min-height:16px;margin-bottom:4px"></div>
+    ${cur && cur.img ? `<button onclick="gjDeleteImage('${key}')" style="background:#2a0d0d;border:1px solid var(--red2);color:var(--red);padding:5px 14px;border-radius:4px;cursor:pointer;font-family:var(--sans);font-size:12px">画像を削除</button>` : ''}`;
+  document.getElementById('modal-save-btn').style.display = 'none';
+  document.getElementById('modal-overlay').style.display = 'flex';
+  const drop = document.getElementById('gj-drop'), file = document.getElementById('gj-file');
+  drop.onclick = () => file.click();
+  drop.ondragover = e => { e.preventDefault(); drop.style.borderColor = 'var(--accent)'; };
+  drop.ondragleave = () => { drop.style.borderColor = 'var(--border2)'; };
+  drop.ondrop = e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f && f.type.indexOf('image/') === 0) gjApply(key, f); };
+  file.onchange = () => { if (file.files[0]) gjApply(key, file.files[0]); };
+}
+
+async function gjApply(key, blob) {
+  const st = document.getElementById('gj-status');
+  if (st) st.textContent = '圧縮中…';
+  try {
+    const img = await gjCompress(blob);
+    if (!S.glamJobs[key]) S.glamJobs[key] = {};
+    S.glamJobs[key].img = img;
+    S.glamJobs[key].updated = new Date().toISOString().slice(0, 10);
+    save(); closeModal(); renderGlamour();
+  } catch(e) {
+    if (st) st.textContent = '読み込み失敗: ' + e.message;
+  }
+}
+
+// モーダルを開いた状態での Ctrl+V（クリップボード画像）
+document.addEventListener('paste', e => {
+  if (!gjPasteTarget) return;
+  const items = (e.clipboardData || {}).items || [];
+  for (const it of items) {
+    if (it.type && it.type.indexOf('image/') === 0) {
+      e.preventDefault();
+      gjApply(gjPasteTarget, it.getAsFile());
+      return;
+    }
+  }
+});
+
+function gjDeleteImage(key) {
+  if (S.glamJobs[key]) { delete S.glamJobs[key].img; save(); }
+  closeModal(); renderGlamour();
+}
+
+function gjEditMemo(key) {
+  const j = GLAM_JOBS.find(x => x.key === key);
+  if (!j) return;
+  const cur = (S.glamJobs[key] && S.glamJobs[key].memo) || '';
+  document.getElementById('modal-title').textContent = j.name + ' — メモ';
+  document.getElementById('modal-body').innerHTML = `
+    <textarea id="gj-memo-ta" style="width:100%;height:110px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:13px;padding:8px 10px;border-radius:4px;resize:vertical;box-sizing:border-box" placeholder="装備名・染色・入手先など">${gjEsc(cur)}</textarea>`;
+  document.getElementById('modal-overlay').style.display = 'flex';
+  document.getElementById('modal-save-btn').onclick = () => {
+    if (!S.glamJobs[key]) S.glamJobs[key] = {};
+    S.glamJobs[key].memo = document.getElementById('gj-memo-ta').value.trim();
+    save(); closeModal(); renderGlamour();
+  };
+}
+
+// タップで拡大（ライトボックス）
+function gjShow(key) {
+  const d = S.glamJobs[key];
+  if (!d || !d.img) return;
+  const j = GLAM_JOBS.find(x => x.key === key);
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:zoom-out;padding:16px;gap:10px';
+  ov.innerHTML = `<img src="${d.img}" style="max-width:100%;max-height:88%;border:2px solid var(--ink);border-radius:8px;box-shadow:4px 4px 0 var(--ink)">
+    <div style="color:var(--text2);font-size:12.5px;font-family:var(--sans)">${j ? gjEsc(j.name) : ''}${d.updated ? `<span style="color:var(--text3)">・${d.updated}</span>` : ''}</div>`;
+  ov.onclick = () => ov.remove();
+  document.body.appendChild(ov);
+}
+
 // ==================== GLAMOUR RENDER ====================
 let glamFilter = 'all';
 
 function renderGlamour() {
+  // --- ジョブ別ミラプリ（全ジョブ固定枠・スクショ＋メモ） ---
+  const gjDone = GLAM_JOBS.filter(j => S.glamJobs[j.key] && S.glamJobs[j.key].img).length;
+  const gjSection = `
+    <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:4px;flex-wrap:wrap">
+      <span style="font-weight:700;font-size:15px">ジョブ別ミラプリ</span>
+      <span style="font-size:12px;color:var(--text2)">スクショ <b>${gjDone}</b>/${GLAM_JOBS.length}</span>
+      <span style="font-size:10.5px;color:var(--text3)">画像は自動縮小・クラウド同期に載る（PC⇔スマホ）</span>
+    </div>` +
+    GJ_ROLES.map(([role, label]) => {
+      const cards = GLAM_JOBS.filter(j => j.role === role).map(j => {
+        const d = S.glamJobs[j.key] || {};
+        const memo = d.memo || '';
+        return `<div class="gj-card">
+          <div class="gj-head">
+            <img src="${iconUrl(j.icon)}" alt="" onerror="this.style.display='none'">
+            <span class="gj-name">${j.name}</span>
+            <button onclick="gjPickImage('${j.key}')" title="スクショを設定" style="background:none;border:none;cursor:pointer;font-size:13px;padding:0 3px;line-height:1">📷</button>
+          </div>
+          <div class="gj-img" onclick="${d.img ? `gjShow('${j.key}')` : `gjPickImage('${j.key}')`}">
+            ${d.img ? `<img src="${d.img}" alt="${j.name}" loading="lazy">` : `<div class="gj-empty">＋ スクショを貼る</div>`}
+          </div>
+          <div class="gj-memo${memo ? '' : ' empty'}" onclick="gjEditMemo('${j.key}')">${memo ? gjEsc(memo) : 'メモを書く…'}</div>
+        </div>`;
+      }).join('');
+      return `<div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:1px;margin:12px 0 6px">${label}</div><div class="gj-grid">${cards}</div>`;
+    }).join('');
+
+  // --- コーデ（部位トラッカー・既存） ---
   const jobs = [...new Set(S.glamours.map(g=>g.job))];
   const filterRow = `<div class="filter-row" style="margin-bottom:10px">
     ${['all',...jobs].map(j=>`<button class="filter-btn${glamFilter===j?' active':''}" onclick="glamFilter='${j}';renderGlamour()">${j==='all'?'すべて':j}</button>`).join('')}
@@ -1288,7 +1452,9 @@ function renderGlamour() {
     </div>`;
   }).join('');
 
-  document.getElementById('tab-glamour').innerHTML = filterRow + addBtn +
+  document.getElementById('tab-glamour').innerHTML = gjSection +
+    `<div style="font-weight:700;font-size:15px;margin:22px 0 10px;padding-top:14px;border-top:1px solid var(--border)">コーデ（部位トラッカー）</div>` +
+    filterRow + addBtn +
     `<div class="glamour-section">${cards}</div>`;
 }
 
