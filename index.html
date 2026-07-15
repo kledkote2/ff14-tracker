@@ -216,11 +216,23 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 .st-end     {background:var(--pink);}
 #modal-body label{display:block;font-family:var(--mono);font-size:11px;color:var(--text3);margin-bottom:4px;}
 
+/* クリア進捗（アチーブ逆引きv2・2026-07-15） */
+.cp-sec{margin-bottom:26px;}
+.cp-cnt{font-family:var(--mono);font-size:12px;color:var(--text3);font-weight:400;margin-left:10px;}
+.cp-exp{font-family:var(--mono);font-size:11px;color:var(--text3);margin:10px 0 6px;letter-spacing:.08em;}
+.cp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px 14px;}
+.cp-row{display:flex;align-items:center;gap:8px;padding:3px 6px;border-radius:4px;font-size:12.5px;min-width:0;}
+.cp-row.clr{color:var(--text3);}
+.cp-row.clr .cp-name{text-decoration:line-through;text-decoration-color:var(--border2);}
+.cp-mark{font-family:var(--mono);font-weight:700;width:14px;flex:none;text-align:center;}
+.cp-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 @media (max-width: 768px) {
-  .header{padding:8px 12px;gap:8px;}
+  .header{padding:8px 12px;gap:8px;flex-wrap:wrap;}
   .logo{font-size:11px;}
   .main{padding:12px;}
-  .nav-btn{padding:5px 10px;font-size:12px;}
+  /* タブナビ: 横スクロール→3列グリッド（全タブ常時可視・2026-07-15 発注B項） */
+  .nav{order:10;width:100%;flex:none;display:grid;grid-template-columns:repeat(3,1fr);gap:5px;overflow-x:visible;}
+  .nav-btn{padding:8px 4px;font-size:12px;text-align:center;border-color:var(--border);background:var(--bg2);}
   .job-tbl,.weapon-tbl{display:block;overflow-x:auto;}
   .glamour-section{grid-template-columns:1fr;}
   .sites-grid{grid-template-columns:1fr 1fr;}
@@ -237,6 +249,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
     <button class="nav-btn" onclick="switchTab('jobs',this)">ジョブ</button>
     <button class="nav-btn" onclick="switchTab('weapons',this)">光る武器</button>
     <button class="nav-btn" onclick="switchTab('gogoku',this)">黄金極</button>
+    <button class="nav-btn" onclick="switchTab('clearprog',this)">クリア進捗</button>
     <button class="nav-btn" onclick="switchTab('glamour',this)">ミラプリ</button>
     <button class="nav-btn" onclick="switchTab('sites',this)">便利サイト</button>
     <button class="nav-btn" onclick="switchTab('collect',this)">収集</button>
@@ -251,6 +264,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
   <div class="tab-content" id="tab-jobs"></div>
   <div class="tab-content" id="tab-weapons"></div>
   <div class="tab-content" id="tab-gogoku"></div>
+  <div class="tab-content" id="tab-clearprog"></div>
   <div class="tab-content" id="tab-glamour"></div>
   <div class="tab-content" id="tab-sites"></div>
   <div class="tab-content" id="tab-collect">
@@ -480,6 +494,8 @@ if (!S.glamours) S.glamours = JSON.parse(JSON.stringify(GLAMOURS_DEFAULT));
 if (!S.glamIdSeq) S.glamIdSeq = 100;
 // ジョブ別ミラプリ（スクショ＋メモ）: { <jobKey>: { img:dataURL, memo:'', updated:'YYYY-MM-DD' } }
 if (!S.glamJobs || typeof S.glamJobs !== 'object') S.glamJobs = {};
+// クリア進捗（アチーブ逆引きv2）: Lodestoneから取得した所持アチーブメントID
+if (!Array.isArray(S.achIds)) S.achIds = [];
 // Weekly reset tracking: store ISO week string "YYYY-Www"
 function isoWeek() {
   const d = new Date();
@@ -587,7 +603,7 @@ function switchSub(id, btn) {
   if (btn) btn.classList.add('active');
 }
 
-function renderAll() { renderTodo(); renderJobs(); renderGogoku(); renderWeapons(); renderGlamour(); renderSites(); renderBlueMage(); renderMinion(); renderMount(); renderSeals(); renderOrchstrion(); renderTriad(); renderCabinet(); renderGP(); }
+function renderAll() { renderTodo(); renderJobs(); renderGogoku(); renderWeapons(); renderGlamour(); renderSites(); renderBlueMage(); renderMinion(); renderMount(); renderSeals(); renderOrchstrion(); renderTriad(); renderCabinet(); renderClearProg(); renderGP(); }
 
 function renderGP() {
   const all = [
@@ -925,6 +941,104 @@ async function collLodestoneSync(kind) {
   } catch(e) {
     console.warn('[lodestone-sync]', e);
     reset(String(e.message).includes('private') ? '✕ Lodestone側が非公開設定' : '✕ 取得失敗');
+  }
+}
+
+
+// ==================== クリア進捗（アチーブメント逆引き v2・2026-07-15） ====================
+// マッピングの正: bourgeoisor/xivtodo frontend/src/assets/db.json（NameJA/ID/MinID/MaxIDOneOf/MaxIDAllOf を抽出して静的埋め込み）
+// 3値判定（xivtodoのロジックを移植）: ID所持=クリア済 / MaxIDOneOfいずれか所持 / MaxIDAllOf全部所持 =クリア済
+//   / MinIDのみ定義の場合: 未所持=未クリア確定・所持=不明（アチーブからは断定できない）
+// エントリ形式: [名前, ID, MaxIDOneOf[], MaxIDAllOf[], MinID]（0=なし）
+const CP_SECTIONS = [{"label":"極討滅戦","g":[["新生",[["究極幻想 アルテマウェポン破壊作戦",0,[1000],0,788],["極ガルーダ討滅戦",856,0,0,0],["極タイタン討滅戦",857,0,0,0],["極イフリート討滅戦",855,0,0,0],["極王モグル・モグXII世討滅戦",894,0,0,0],["極リヴァイアサン討滅戦",893,0,0,0],["極ラムウ討滅戦",994,0,0,0],["極シヴァ討滅戦",1045,0,0,0]]],["蒼天",[["極ビスマルク討滅戦",1220,0,0,0],["極ラーヴァナ討滅戦",1221,0,0,0],["蒼天幻想 ナイツ・オブ・ラウンド討滅戦",1400,0,0,0],["極ニーズヘッグ征竜戦",1601,0,0,0],["極魔神セフィロト討滅戦",1485,0,0,0],["極女神ソフィア討滅戦",1636,0,0,0],["極鬼神ズルワーン討滅戦",1685,0,0,0]]],["紅蓮",[["極スサノオ討滅戦",1902,0,0,0],["極ラクシュミ討滅戦",1901,0,0,0],["極神龍討滅戦",1989,0,0,0],["極ツクヨミ討滅戦",2060,0,0,0],["極リオレウス狩猟戦",2109,0,0,0],["極白虎征魂戦",2023,0,0,0],["極朱雀征魂戦",2117,0,0,0],["極青龍征魂戦",2165,0,0,0]]],["漆黒",[["極ティターニア討滅戦",2385,0,0,0],["極イノセンス討滅戦",2386,0,0,0],["極ハーデス討滅戦",2441,0,0,0],["極ルビーウェポン破壊作戦",2590,0,0,0],["極シタデル・ボズヤ追憶戦",2586,0,0,0],["極ウォーリア・オブ・ライト討滅戦",2621,0,0,0],["極エメラルドウェポン破壊作戦",2718,0,0,0],["極ダイヤウェポン捕獲作戦",2846,0,0,0]]],["暁月",[["極ゾディアーク討滅戦",2988,0,0,0],["極ハイデリン討滅戦",2989,0,0,0],["終極の戦い",3072,0,0,0],["極バルバリシア討滅戦",3107,0,0,0],["極ルビカンテ討滅戦",3160,0,0,0],["極ゴルベーザ討滅戦",3246,0,0,0],["極ゼロムス討滅戦",3402,0,0,0]]],["黄金",[["極ヴァリガルマンダ討滅戦",3526,0,0,0],["極ゾラージャ討滅戦",3525,0,0,0],["極エターナルクイーン討滅戦",3605,0,0,0],["極ゼレニア討滅戦",3626,0,0,0],["極永遠の闇討滅戦",3805,0,0,0],["極護竜アルシュベルド狩猟戦",3823,0,0,0],["極グラシャラボラス討滅戦",3889,0,0,0],["極エヌオー討滅戦",3979,0,0,0]]]]},{"label":"零式・絶・激闘","g":[["新生",[["大迷宮バハムート零式：侵攻",1000,0,0,0]]],["蒼天",[["機工城アレキサンダー零式：起動",1231,0,0,0],["機工城アレキサンダー零式：律動",1479,0,0,0],["機工城アレキサンダー零式：天動",1642,0,0,0]]],["紅蓮",[["次元の狭間オメガ零式：デルタ",1898,0,0,0],["次元の狭間オメガ零式：シグマ",2027,0,0,0],["次元の狭間オメガ零式：アルファ",2121,0,0,0],["絶バハムート討滅戦",1993,0,0,0],["絶アルテマウェポン破壊作戦",2107,0,0,0]]],["漆黒",[["希望の園エデン零式：覚醒",2412,0,0,0],["希望の園エデン零式：共鳴",2594,0,0,0],["希望の園エデン零式：再生",2722,0,0,0],["絶アレキサンダー討滅戦",2444,0,0,0]]],["暁月",[["万魔殿パンデモニウム零式：辺獄",3038,0,0,0],["万魔殿パンデモニウム零式：煉獄",3111,0,0,0],["万魔殿パンデモニウム零式：天獄編",3251,0,0,0],["絶竜詩戦争",3074,0,0,0],["絶オメガ検証戦",3162,0,0,0]]],["黄金",[["至天の座アルカディア零式：ライトヘビー級",3575,0,0,0],["至天の座アルカディア零式：クルーザー級",3630,0,0,0],["至天の座アルカディア零式：ヘビー級",3868,0,0,0],["滅暗闇の雲激闘戦",3616,0,0,0],["絶もうひとつの未来",3617,0,0,0],["Dancing Mad (Ultimate)",4069,0,0,0]]]]},{"label":"討伐・討滅戦","g":[["新生",[["イフリート討伐戦",0,[783,673],0,789],["タイタン討伐戦",0,[785],0,784],["ガルーダ討伐戦",0,[787],0,786],["アルテマウェポン破壊作戦",0,[788],0,787],["アシエン・ナプリアレス討伐戦",1067,[1129],0,1029],["ドルムキマイラ討伐戦",0,[925,129,130,131,132,133,134,135,597,598,1053],0,788],["ハイドラ討伐戦",0,[925,129,130,131,132,133,134,135,597,598,1053],0,788],["ギルガメッシュ討伐戦",0,[1061],0,788],["アマジナ杯闘技会決勝戦",0,[1061],0,788],["真ギルガメッシュ討滅戦",1066,0,0,0],["真イフリート討滅戦",0,[747,855,856,857],0,788],["真ガルーダ討滅戦",0,[747,855,856,857],0,788],["真タイタン討滅戦",0,[747,855,856,857],0,788],["善王モグル・モグXII世討滅戦",0,[898],0,788],["真リヴァイアサン討滅戦",0,[899],0,898],["真ラムウ討滅戦",0,[1001],0,899],["真シヴァ討滅戦",0,[1029],0,1001],["闘神オーディン討滅戦",1064,0,0,0]]],["蒼天",[["真ラーヴァナ討滅戦",0,[1135,1209],0,1134],["真ビスマルク討滅戦",0,[1137],0,1136],["ナイツ・オブ・ラウンド討滅戦",0,[1139],0,1138],["ニーズヘッグ征竜戦",0,[1594],0,1493],["魔神セフィロト討滅戦",0,[1485,1636,1685],0,1139],["女神ソフィア討滅戦",0,[1636,1685],0,1139],["鬼神ズルワーン討滅戦",0,[1685],0,1139]]],["紅蓮",[["スサノオ討滅戦",0,[1789],0,1788],["ラクシュミ討滅戦",0,[1793,1887],0,1792],["神龍討滅戦",0,[1794],0,1793],["ツクヨミ討滅戦",0,[2098],0,2013],["真ヨウジンボウ討滅戦",2236,0,0,0],["リオレウス狩猟戦",2108,0,0,0],["白虎征魂戦",0,[2023,2117,2165],0,2057],["朱雀征魂戦",0,[2117,2165],0,2057],["青龍征魂戦",0,[2165],0,2057]]],["漆黒",[["ティターニア討滅戦",0,[2294],0,2293],["イノセンス討滅戦",0,[2297],0,2296],["ハーデス討滅戦",0,[2298],0,2297],["ルビーウェポン破壊作戦",0,[2887,2590,2718,2846],0,2424],["ウォーリア・オブ・ライト討滅戦",0,[2642],0,2587],["エメラルドウェポン破壊作戦",0,[2887,2718,2846],0,2424],["ダイヤウェポン捕獲作戦",0,[2887,2846],0,2424]]],["暁月",[["ゾディアーク討滅戦",0,[2953],0,2952],["ハイデリン討滅戦",0,[2957],0,2956],["終焉の戦い",0,[2958],0,2957],["バルバリシア討滅戦",0,[3105],0,3075],["ルビカンテ討滅戦",0,[3157],0,3105],["ゴルベーザ討滅戦",0,[3244],0,3157],["ゼロムス討滅戦",0,[3413],0,3244],["アスラ討滅戦",3415,0,0,0]]],["黄金",[["ヴァリガルマンダ討滅戦",0,[3492],0,0],["ゾラージャ討滅戦",0,[3495],0,0],["エターナルクイーン討滅戦",0,[3496],0,0],["ゼレニア討滅戦",0,[3633],0,0],["永遠の闇討滅戦",0,[3773],0,0],["護竜アルシュベルド狩猟戦",0,[3822],0,0],["グラシャラボラス討滅戦",0,[3863],0,0],["エヌオー討滅戦",0,[3942],0,0]]]]},{"label":"レイド（ノーマル・アライアンス）","g":[["新生",[["クリスタルタワー：古代の民の迷宮",883,0,0,0],["クリスタルタワー：シルクスの塔",995,0,0,0],["クリスタルタワー：闇の世界",1068,0,0,0],["大迷宮バハムート：邂逅",747,0,0,0],["大迷宮バハムート：侵攻",887,0,0,0],["大迷宮バハムート：真成",1040,0,0,0]]],["蒼天",[["魔航船ヴォイドアーク",1399,0,0,0],["禁忌都市マハ",1574,0,0,0],["影の国ダン・スカー",1689,0,0,0],["機工城アレキサンダー：起動",1228,0,0,0],["機工城アレキサンダー：律動",1476,0,0,0],["機工城アレキサンダー：天動",1639,0,0,0]]],["紅蓮",[["失われた都 ラバナスタ",1992,0,0,0],["封じられた聖塔 リドルアナ",2106,0,0,0],["楽欲の僧院 オーボンヌ",2164,0,0,0],["次元の狭間オメガ：デルタ",1895,0,0,0],["次元の狭間オメガ：シグマ",2024,0,0,0],["次元の狭間オメガ：アルファ",2118,0,0,0]]],["漆黒",[["複製サレタ工場廃墟",2443,0,0,0],["人形タチノ軍事基地",2622,0,0,0],["希望ノ砲台：「塔」",2847,0,0,0],["希望の園エデン：覚醒",2409,0,0,0],["希望の園エデン：共鳴",2591,0,0,0],["希望の園エデン：再生",2719,0,0,0]]],["暁月",[["輝ける神域 アグライア",3073,0,0,0],["喜びの神域 エウプロシュネ",3161,0,0,0],["華めく神域 タレイア",3403,0,0,0],["万魔殿パンデモニウム：辺獄",3035,0,0,0],["万魔殿パンデモニウム：煉獄",3108,0,0,0],["万魔殿パンデモニウム：天獄編",3248,0,0,0]]],["黄金",[["ジュノ：ザ・ファーストウォーク",3606,0,0,0],["サンドリア：ザ・セカンドウォーク",3806,0,0,0],["ウィンダス：ザ・サードウォーク",3980,0,0,0],["至天の座アルカディア：ライトヘビー級",3572,0,0,0],["至天の座アルカディア：クルーザー級",3627,0,0,0],["至天の座アルカディア：ヘビー級",3865,0,0,0]]]]},{"label":"ダンジョン","g":[["新生",[["天然要害 サスタシャ浸食洞",0,[783,663,669,667],0,789],["地下霊殿 タムタラの墓所",669,0,0,0],["封鎖坑道 カッパーベル銅山",0,[783,666,667],0,789],["魔獣領域 ハラタリ修練所",667,0,0,0],["監獄廃墟 トトラクの千獄",0,[783,673],0,789],["名門屋敷 ハウケタ御用邸",0,[784,670],0,783],["奪還支援 ブレイフロクスの野営地",0,[785,664],0,784],["遺跡探索 カルン埋没寺院",0,[668],0,783],["流砂迷宮 カッターズクライ",674,0,0,0],["城塞攻略 ストーンヴィジル",672,0,0,0],["掃討作戦 ゼーメル要塞",0,[675],0,784],["霧中行軍 オーラムヴェイル",676,0,0,0],["旅神聖域 ワンダラーパレス",665,0,0,0],["外郭攻略 カストルム・メリディアヌム",0,[788,678],0,787],["最終決戦 魔導城プラエトリウム",0,[788,679],0,787],["邪教排撃 古城アムダプール",671,0,0,0],["怪鳥巨塔 シリウス大灯台",0,[873],0,788],["騒乱坑道 カッパーベル銅山 (Hard)",871,0,0,0],["妖異屋敷 ハウケタ御用邸 (Hard)",872,0,0,0],["腐敗遺跡 古アムダプール市街",897,0,0,0],["剣闘領域 ハラタリ修練所 (Hard)",895,0,0,0],["盟友支援 ブレイフロクスの野営地 (Hard)",896,0,0,0],["財宝伝説 ハルブレーカー・アイル",993,0,0,0],["惨劇霊殿 タムタラの墓所 (Hard)",991,0,0,0],["城塞奪回 ストーンヴィジル (Hard)",992,0,0,0],["氷結潜窟 スノークローク大氷壁",1039,0,0,0],["逆襲要害 サスタシャ浸食洞 (Hard)",1038,0,0,0],["遺跡救援 カルン埋没寺院 (Hard)",0,[1037],0,788],["幻龍残骸 黙約の塔",1072,0,0,0],["武装聖域 ワンダラーパレス (Hard)",1071,0,0,0],["邪念排撃 古城アムダプール (Hard)",1070,0,0,0]]],["蒼天",[["廃砦捜索 ダスクヴィジル",0,[1208,1209],0,0],["霊峰踏破 ソーム・アル",0,[1209,1210],0,0],["邪竜血戦 ドラゴンズエアリー",0,[1210,1211],0,0],["強硬突入 イシュガルド教皇庁",0,[1211,1212],0,0],["禁書回収 グブラ幻想図書館",0,[1212,1213],0,0],["蒼天聖戦 魔科学研究所",0,[1213,1139],0,0],["神域浮島 ネバーリープ",1214,0,0,0],["博物戦艦 フラクタル・コンティニアム",1215,0,0,0],["草木庭園 聖モシャーヌ植物園",1402,0,0,0],["制圧巨塔 シリウス大灯台 (Hard)",1403,0,0,0],["星海観測 逆さの塔",0,[1486,1493],0,0],["神聖遺跡 古アムダプール市街 (Hard)",1487,0,0,0],["天竜宮殿 ソール・カイ",0,[1599,1594],0,0],["黒渦伝説 ハルブレーカー・アイル (Hard)",1600,0,0,0],["峻厳渓谷 ゼルファトル",0,[1637,1630],0,0],["稀書回収 グブラ幻想図書館 (Hard)",1638,0,0,0],["巨大防壁 バエサルの長城",0,[1686,1691],0,0],["霊峰浄化 ソーム・アル (Hard)",1687,0,0,0]]],["紅蓮",[["漂流海域 セイレーン海",0,[1883,1884],0,0],["海底宮殿 紫水宮",0,[1884,1885],0,0],["伝統試練 バルダム覇道",0,[1885,1886],0,0],["解放決戦 ドマ城",0,[1886,1887],0,0],["巨砲要塞 カストルム・アバニア",0,[1887,1888],0,0],["紅蓮決戦 アラミゴ",0,[1888,1794],0,0],["悪党成敗 クガネ城",1889,0,0,0],["壊神修行 星導山寺院",1890,0,0,0],["水没遺構 スカラ",0,[1988,1990],0,0],["紅玉火山 獄之蓋",2021,0,0,0],["暴走戦艦 フラクタル・コンティニアム (Hard)",2022,0,0,0],["風水霊殿 ガンエン廟",2057,0,0,0],["永久焦土 ザ・バーン",0,[2115,2124],0,0],["草木汚染 聖モシャーヌ植物園 (Hard)",2116,0,0,0],["境界戦線 ギムリトダーク",0,[2162,2233],0,0]]],["漆黒",[["殺戮郷村 ホルミンスター",0,[2377,2378],0,0],["水妖幻園 ドォーヌ・メグ",0,[2378,2379],0,0],["古跡探索 キタンナ神影洞",0,[2379,2380],0,0],["爽涼離宮 マリカの大井戸",0,[2380,2381],0,0],["偽造天界 グルグ火山",0,[2381,2382],0,0],["終末幻想 アーモロート",0,[2382,2298],0,0],["異界遺構 シルクス・ツイニング",2383,0,0,0],["創造機関 アナイダアカデミア",2384,0,0,0],["魔法宮殿 グラン・コスモス",0,[2440,2424],0,0],["黒風海底 アニドラス・アナムネーシス",0,[2589,2587],0,0],["漆黒決戦 ノルヴラント",0,[2618,2642],0,0],["魔術工房 マトーヤのアトリエ",0,[2717,2714],0,0],["黄金平原 パガルザン",0,[2849,2850],0,0]]],["暁月",[["異形楼閣 ゾットの塔",0,[2980,2952],0,0],["魔導神門 バブイルの塔",0,[2981,2953],0,0],["終末樹海 ヴァナスパティ",0,[2982,2955],0,0],["創造環境 ヒュペルボレア造物院",0,[2983,2956],0,0],["星海潜航 アイティオン星晶鏡",0,[2984,2957],0,0],["最終幻想 レムナント",0,[2985,2958],0,0],["楽園都市 スマイルトン",2987,0,0,0],["電脳夢想 スティグマ・フォー",2986,0,0,0],["近東秘宝 アルザダール海底遺跡群",3070,0,0,0],["異界孤城 トロイアコート",3106,0,0,0],["雪山冥洞 ラピス・マナリス",3158,0,0,0],["星霊間欠 ハーム島",3245,0,0,0],["深淵潜行 月の地下渓谷",3400,0,0,0]]],["黄金",[["濁流遡上 イフイカ・トゥム",0,[3517,3491],0,0],["山嶺登頂 ウォーコー・ゾーモー",0,[3518,3492],0,0],["遺産踏査 天深きセノーテ",0,[3519,3493],0,0],["外征前哨 ヴァンガード",0,[3520,3494],0,0],["魂魄工廠 オリジェニクス",0,[3521,3495],0,0],["記憶幻想 アレクサンドリア",0,[3522,3496],0,0],["荒野秘境 サボテンダーバレー",3523,0,0,0],["悪夢遊園 ストレイバロー",3524,0,0,0],["廃地討究 ユウェヤーワータ",3603,0,0,0],["王城旧跡 アンダーキープ",3625,0,0,0],["永久幽界 メインターミナル",3803,0,0,0],["遺忘行路 ミストウェイク",3888,0,0,0],["？？？？ クルティウス魔導工廠",3977,0,0,0]]]]},{"label":"ヴァリアント/クライテリオン","g":[["暁月",[["シラディハ水道ヴァリアントダンジョン シラディハ水道",0,[3147,3148,3149,3150,3151],0,0],["アナザーダンジョン 異聞シラディハ水道",3155,0,0,0],["アナザーダンジョン 異聞シラディハ水道 零式",3156,0,0,0],["ヴァリアントダンジョン 六根山",0,[3331,3332,3333,3334,3335],0,0],["アナザーダンジョン 異聞六根山",3339,0,0,0],["アナザーダンジョン 異聞六根山 零式",3340,0,0,0],["ヴァリアントダンジョン アロアロ島",0,[3341,3342,3343,3344,3345],0,0],["アナザーダンジョン 異聞アロアロ島",3349,0,0,0],["アナザーダンジョン 異聞アロアロ島 零式",3350,0,0,0]]],["黄金",[["The Merchant's Tale",0,[3892,3893,3894,3895],0,0],["The Merchant's Tale (Advanced)",3898,0,0,0],["Another Merchant's Tale",3899,0,0,0]]]]},{"label":"特殊フィールド探索","g":[["紅蓮・エウレカ",[["バルデシオンアーセナル",2227,0,0,0]]],["漆黒・ボズヤ",[["カストルム・ラクスリトレ",2680,0,0,0],["グンヒルド・ディルーブラム",2762,0,0,0],["グンヒルド・ディルーブラム零式",2765,0,0,0],["旗艦ダル・リアータ",2874,0,0,0]]],["黄金・クレセント",[["The Forked Tower: Blood",3668,0,0,0],["The Final Verse",0,[3811],0,0],["The Final Verse (Quantum)",3818,0,0,0]]]]},{"label":"ギルドオーダー","g":[["新生",[["集団戦訓練をくぐり抜けろ！",0,[644],0,789],["彷徨う死霊を討て！",0,[644],0,789],["全関門を突破し、最深部の敵を討て！",0,[644],0,789],["ギルガメを捕獲せよ！",0,[645],0,644],["有毒妖花を駆除せよ！",0,[645],0,644],["無法者「似我蜂団」を撃滅せよ！",0,[645],0,644],["夢幻のブラキシオを討て！",0,[645],0,644],["爆弾魔ゴブリン軍団を撃滅せよ！",0,[646],0,645],["汚染源モルボルを討て！",0,[646],0,645],["坑道に現れた妖異ブソを討て！",0,[646],0,645],["無敵の眷属を従えし、大型妖異を討て！",0,[646],0,645],["ボムを率いる「ボムクイーン」を討て！",0,[646],0,645],["不気味な陣形を組む妖異をせん滅せよ！",0,[646],0,645],["三つ巴の巨人族を制し、遺物を守れ！",0,[646],0,645]]]]},{"label":"メインクエスト","g":[["",[["新生エオルゼア",788,0,0,0],["A Realm Awoken（2x）",898,0,0,0],["Through the Maelstrom（2x）",899,0,0,0],["Defenders of Eorzea（2x）",1001,0,0,0],["Dreams of Ice（2x）",1029,0,0,0],["Before the Fall - Part I（2x）",0,[1129],0,1029],["Before the Fall - Part II（2x）",1129,0,0,0],["蒼天のイシュガルド",1139,0,0,0],["As Goes Light, So Goes Darkness（3x）",1387,0,0,0],["The Gears of Change（3x）",1493,0,0,0],["Revenge of the Horde（3x）",1594,0,0,0],["Soul Surrender（3x）",1630,0,0,0],["The Far Edge of Fate - Part I（3x）",1690,0,0,0],["The Far Edge of Fate - Part II（3x）",1691,0,0,0],["紅蓮のリベレーター",1794,0,0,0],["The Legend Returns（4x）",1990,0,0,0],["Rise of a New Sun（4x）",2013,0,0,0],["Under the Moonlight（4x）",2098,0,0,0],["Prelude in Violet（4x）",2124,0,0,0],["A Requiem for Heroes - Part I（4x）",2160,0,0,0],["A Requiem for Heroes - Part II（4x）",2233,0,0,0],["漆黒のヴィランズ",2298,0,0,0],["Vows of Virtue, Deeds of Cruelty（5x）",2424,0,0,0],["Echoes of a Fallen Star（5x）",2587,0,0,0],["Reflections in Crystal（5x）",2642,0,0,0],["Futures Rewritten（5x）",2714,0,0,0],["Death Unto Dawn - Part I（5x）",2850,0,0,0],["Death Unto Dawn - Part II（5x）",2851,0,0,0],["暁月のフィナーレ",2958,0,0,0],["Newfound Adventure（6x）",3075,0,0,0],["Buried Memory（6x）",3105,0,0,0],["Gods Revel, Lands Tremble（6x）",3157,0,0,0],["The Dark Throne（6x）",3244,0,0,0],["Growing Light - Part I（6x）",3413,0,0,0],["Growing Light - Part II（6x）",3414,0,0,0],["黄金のレガシー",3496,0,0,0],["Crossroads（7x）",3607,0,0,0],["Seekers of Eternity（7x）",3633,0,0,0],["The Promise of Tomorrow（7x）",3773,0,0,0],["Into the Mist（7x）",3863,0,0,0],["Trail to the Heavens - Part I（7x）",3942,0,0,0]]]]}];
+let cpHideDone = false, cpQ = '';
+function cpAchSet() { return new Set((Array.isArray(S.achIds) ? S.achIds : []).map(Number)); }
+function cpStatus(e, A) {
+  if (e[1] && A.has(e[1])) return 1;
+  if (e[2] && e[2].some(x => A.has(x))) return 1;
+  if (e[3] && e[3].length && e[3].every(x => A.has(x))) return 1;
+  if (e[4]) return A.has(e[4]) ? -1 : 0;
+  return 0;
+}
+const CP_MARK = { '1': ['✓', 'var(--green)', 'クリア済'], '0': ['−', 'var(--text3)', '未クリア'], '-1': ['?', 'var(--gold)', '不明（アチーブから断定不可）'] };
+function renderClearProg() {
+  const el = document.getElementById('tab-clearprog'); if (!el) return;
+  const A = cpAchSet(), synced = A.size > 0;
+  let tot = 0, cleared = 0, unknown = 0;
+  const q = cpQ.toLowerCase();
+  const secHtml = CP_SECTIONS.map(sec => {
+    let sTot = 0, sClr = 0;
+    const groups = sec.g.map(gr => {
+      const rows = gr[1].map(e => {
+        const st = cpStatus(e, A);
+        sTot++; tot++;
+        if (st === 1) { sClr++; cleared++; }
+        else if (st === -1) unknown++;
+        if (cpHideDone && st === 1) return '';
+        if (q && !e[0].toLowerCase().includes(q)) return '';
+        const m = CP_MARK[String(st)];
+        return `<div class="cp-row${st === 1 ? ' clr' : ''}" title="${m[2]}"><span class="cp-mark" style="color:${m[1]}">${m[0]}</span><span class="cp-name">${e[0]}</span></div>`;
+      }).join('');
+      if (!rows) return '';
+      return `${gr[0] ? `<div class="cp-exp">${gr[0]}</div>` : ''}<div class="cp-grid">${rows}</div>`;
+    }).join('');
+    return `<div class="cp-sec"><div class="sec-title">${sec.label}<span class="cp-cnt">${sClr}/${sTot}</span></div>${groups || '<div style="font-size:12px;color:var(--text3)">（表示対象なし）</div>'}</div>`;
+  }).join('');
+  const last = S.achSyncTime ? new Date(S.achSyncTime).toLocaleString('ja-JP') : 'まだ';
+  const bar = `<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+    <button id="cp-sync-btn" class="filter-btn" onclick="cpAchSync()">↓ アチーブ同期</button>
+    <span style="font-family:var(--mono);font-size:11px;color:var(--text3)">取得済 <b style="color:var(--text2)">${A.size}</b>件・最終同期 ${last}</span>
+    <input class="search-bar" style="max-width:240px;margin-bottom:0" placeholder="コンテンツ名で検索…" value="${cpQ.replace(/"/g, '&quot;')}" oninput="cpQ=this.value;renderClearProg()">
+    <label class="show-done-toggle"><input type="checkbox" ${cpHideDone ? 'checked' : ''} onchange="cpHideDone=this.checked;renderClearProg()"> クリア済を隠す</label>
+    <span style="font-family:var(--mono);font-size:12px;color:var(--text3)">クリア済 <b style="color:var(--green)">${cleared}</b>/${tot}${unknown ? `・不明 <b style="color:var(--gold)">${unknown}</b>` : ''}</span>
+  </div>`;
+  const banner = synced ? '' : `<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:12.5px;color:var(--text2)">アチーブメントが未同期のため全件「未クリア」表示になっています。「↓ アチーブ同期」でLodestoneから取得すると判定が入ります（初回は約31ページ＝1分弱・2回目以降は差分のみ）。</div>`;
+  el.innerHTML = bar + banner + secHtml;
+}
+// アチーブメント差分同期: Worker /lode/achievement/:id?page=N（新着順）をpage=1からループ。
+// 2回目以降は既知IDが現れたページで打ち切り（通常1〜2ページ）。IDは足すだけ・消さない。
+async function cpAchSync() {
+  const btn = document.getElementById('cp-sync-btn');
+  const setB = t => { if (btn) btn.textContent = t; };
+  const known = cpAchSet();
+  const merged = new Set(known);
+  let page = 1, numPages = null, added = 0;
+  try {
+    for (;;) {
+      setB(`↓ 取得中 ${page}${numPages ? '/' + numPages : ''}…`);
+      const res = await fetch(`${WORKER_URL}/lode/achievement/${LODESTONE_ID}?page=${page}`);
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.reason || 'failed');
+      numPages = data.numPages || 1;
+      let hitKnown = false;
+      for (const ent of (data.entries || [])) {
+        const id = Number(ent[0]);
+        if (known.has(id)) hitKnown = true;
+        else if (!merged.has(id)) { merged.add(id); added++; }
+      }
+      if (known.size && hitKnown) break; // 差分同期: 既知IDに当たったら打ち切り（このページの新規は取り込み済み）
+      if (page >= numPages) break;
+      page++;
+      await new Promise(r => setTimeout(r, 400)); // Lodestone慣行（秒1リクエスト）に余裕を持たせる
+    }
+    if (!added) {
+      S.achSyncTime = Date.now(); save();
+      setB('✓ 差分なし');
+      setTimeout(() => renderClearProg(), 2500);
+      return;
+    }
+    if (confirm(`Lodestoneからアチーブメント${added}件を新規取得しました（合計${merged.size}件）。\n反映しますか？（既存データは消しません・足すだけ）`)) {
+      S.achIds = Array.from(merged);
+      S.achSyncTime = Date.now();
+      save();
+      renderClearProg();
+    } else {
+      setB('↓ アチーブ同期');
+    }
+  } catch (e) {
+    console.warn('[cp-achievement-sync]', e);
+    setB(String(e && e.message).includes('private') ? '✕ Lodestone側が非公開設定' : '✕ 取得失敗');
+    setTimeout(() => setB('↓ アチーブ同期'), 4000);
   }
 }
 
