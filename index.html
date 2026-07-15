@@ -2302,9 +2302,27 @@ const COLL_CFG = {
   mount:  { data: () => MOUNTS,  got: () => S.mountGot,  tab: 'tab-mount'  },
 };
 const collFilter = {
-  minion: { cat: 'all', q: '', hide: false },
-  mount:  { cat: 'all', q: '', hide: false },
+  minion: { cat: 'all', q: '', hide: false, hard: false },
+  mount:  { cat: 'all', q: '', hide: false, hard: false },
 };
+
+// ===== 入手困難分類（2026-07-16 夜間発注: 課金/現在入手不可/特典 をまとめて非表示） =====
+// 方針: 入手先文字列のキーワード判定＋「公式グッズ 特典」「FFXIVｵﾝﾗｲﾝｽﾄｱ」カテゴリ。迷ったら隠さない（null）。
+// 検品ログ: Vault Projects/ff14-tracker-assets/入手困難分類-検品ログ-2026-07-16.md（minion 86/328・mount 60/222・orch 27/739・triad 0/475）
+const COLL_HARD_EXTRA = {
+  'エターナルチョコボ': '課金', // エターナルバンド ゴールド/プラチナプラン＝モグステ有料オプション（機械判定が曖昧なため名前で補正）
+};
+function collHardClass(cat, src, name) {
+  if (name && name in COLL_HARD_EXTRA) return COLL_HARD_EXTRA[name];
+  const c = cat || '', s = src || '';
+  // ①課金（モグステーション/オンラインストア）
+  if (/ｵﾝﾗｲﾝｽﾄｱ|オンラインストア|モグステーション/.test(c + '|' + s)) return '課金';
+  // ③特典（コレクターズエディション・早期予約・公式グッズ・キャンペーン・配布チケット等）
+  if (c === '公式グッズ 特典' || /特典|コレクターズエディション|早期予約|キャンペーン/.test(s)) return '特典';
+  // ②現在入手不可（配布終了・レガシー・旧FFXIV・期間限定・過去シーズナルイベント報酬）
+  if (/入手不可|配布終了|レガシー|旧FFXIV|期間中?限定|シーズナルイベント/.test(s)) return '入手不可';
+  return null;
+}
 
 function toggleColl(kind, i) {
   const got = COLL_CFG[kind].got();
@@ -2329,6 +2347,7 @@ function renderColl(kind) {
     <input class="search-bar" style="max-width:240px;margin-bottom:0" placeholder="名前 / 入手先で検索…"
       value="${F.q}" oninput="collFilter['${kind}'].q=this.value;renderColl('${kind}')">
     <label class="show-done-toggle"><input type="checkbox" ${F.hide ? 'checked' : ''} onchange="collFilter['${kind}'].hide=this.checked;renderColl('${kind}')"> 取得済みを隠す</label>
+    <label class="show-done-toggle" title="課金（モグステ/オンラインストア）・現在入手不可（配布終了/過去イベント）・特典（CE/公式グッズ/キャンペーン）をまとめて非表示"><input type="checkbox" ${F.hard ? 'checked' : ''} onchange="collFilter['${kind}'].hard=this.checked;renderColl('${kind}')"> 入手困難を隠す</label>
     <span style="font-family:var(--mono);font-size:12px;color:var(--text3)">取得 <b style="color:var(--green)">${got}</b>/${DATA.length}</span>
     ${(kind==='mount'||kind==='minion') ? `<button id="coll-lode-${kind}" class="filter-btn" style="font-size:11px" onclick="collLodestoneSync('${kind}')">↓ Lodestoneから反映</button>` : ''}
     <button class="filter-btn" onclick="if(confirm('全チェックをリセットしますか？')){COLL_CFG['${kind}'].got()&&Object.keys(COLL_CFG['${kind}'].got()).forEach(k=>delete COLL_CFG['${kind}'].got()[k]);save();renderColl('${kind}')}" style="color:var(--red);border-color:var(--red2)">リセット</button>
@@ -2337,6 +2356,7 @@ function renderColl(kind) {
   const shown = DATA.map((m, i) => ({ ...m, i })).filter(m => {
     if (F.cat !== 'all' && m.c !== F.cat) return false;
     if (F.hide && GOT[m.i]) return false;
+    if (F.hard && collHardClass(m.c, m.s, m.n)) return false;
     if (F.q) {
       const q = F.q.toLowerCase();
       return m.n.toLowerCase().includes(q) || (m.s || '').toLowerCase().includes(q);
@@ -3251,6 +3271,7 @@ function migrateOrchIds() {
 let orchExpFilter = 'all';
 let orchSearch = '';
 let orchShowGot = false;
+let orchHideHard = false;
 
 function renderOrchstrion() {
   const exps = [...new Set(ORCH_ROLLS.map(r=>r.exp))];
@@ -3266,10 +3287,14 @@ function renderOrchstrion() {
     <label class="show-done-toggle">
       <input type="checkbox" ${orchShowGot?'checked':''} onchange="orchShowGot=this.checked;renderOrchstrion()"> 取得済みを表示
     </label>
+    <label class="show-done-toggle" title="過去シーズナルイベント報酬・期間限定交換をまとめて非表示">
+      <input type="checkbox" ${orchHideHard?'checked':''} onchange="orchHideHard=this.checked;renderOrchstrion()"> 入手困難を隠す
+    </label>
   </div>`;
 
   const shown = ORCH_ROLLS.filter(r => {
     if (!orchShowGot && S.orchGot[r.id]) return false;
+    if (orchHideHard && collHardClass('', r.src, r.name)) return false;
     if (orchExpFilter !== 'all' && r.exp !== orchExpFilter) return false;
     if (orchSearch) {
       const q = orchSearch.toLowerCase();
