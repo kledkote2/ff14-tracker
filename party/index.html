@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ロール編成シミュレーター — 極周回</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700;800;900&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FFFFFF; --paper2:#F2F0EC; --sky:#66CFF2; --verm:#F04F30;
+  --apri:#F5B57C; --must:#F5A623; --pink:#F27CA0; --ink:#14110F;
+  --gray:#5A5450; --mute:#9A938C; --grid:#E8E4DC;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:"Noto Sans JP",system-ui,sans-serif;color:var(--ink);line-height:1.7;
+  background:var(--paper);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:24px 24px;
+  padding:16px 12px 96px;
+  overflow-x:hidden;
+}
+.statline .st{white-space:nowrap}
+.wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
+h1,h2,h3{font-family:"M PLUS Rounded 1c","Noto Sans JP",sans-serif}
+
+.hero{
+  background:var(--sky);border:2px solid var(--ink);border-radius:16px;
+  box-shadow:6px 6px 0 var(--ink);padding:24px;transform:rotate(-1deg);
+}
+.hero h1{font-size:32px;font-weight:900;color:#fff;text-shadow:3px 3px 0 var(--ink);line-height:1.15;letter-spacing:.5px}
+.hero p{color:var(--ink);font-weight:700;margin-top:6px;font-size:14px}
+.hero .mono{font-family:"Consolas","Menlo",monospace;font-size:12px;color:var(--ink);opacity:.75;display:block;margin-top:4px;font-weight:400}
+
+.card{background:var(--paper);border:2px solid var(--ink);border-radius:16px;box-shadow:4px 4px 0 var(--ink);padding:24px}
+.card h2{font-size:24px;font-weight:800;margin-bottom:12px}
+.card h2 .cnt{font-size:14px;color:var(--gray);font-weight:700;margin-left:8px}
+
+button{font-family:inherit;font-weight:800;border:2px solid var(--ink);border-radius:9999px;
+  background:var(--paper);color:var(--ink);cursor:pointer;box-shadow:3px 3px 0 var(--ink);
+  padding:8px 16px;font-size:14px;transition:box-shadow .05s,transform .05s;-webkit-tap-highlight-color:transparent}
+button:active{box-shadow:1px 1px 0 var(--ink);transform:translate(2px,2px)}
+button.primary{background:var(--verm);color:#fff;text-shadow:1.5px 1.5px 0 var(--ink);font-size:18px;padding:14px 28px}
+button.sky{background:var(--sky)}
+button.ghost{box-shadow:none;border-color:var(--mute);color:var(--mute);padding:4px 10px;font-size:12px}
+button.ghost:active{transform:none}
+
+.addrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px}
+.addrow input[type=text]{
+  flex:1;min-width:150px;border:2px solid var(--ink);border-radius:12px;padding:10px 12px;
+  font-size:16px;font-family:inherit;background:var(--paper2)
+}
+.addrow input[type=text]:focus{outline:3px solid var(--sky)}
+.chiprow{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+
+/* ロールチップ（6分類） */
+.chip{display:inline-flex;align-items:center;justify-content:center;height:32px;
+  border:2px solid var(--ink);border-radius:9999px;font-weight:900;font-size:12.5px;cursor:pointer;
+  background:var(--paper);color:var(--mute);user-select:none;padding:0 11px;-webkit-tap-highlight-color:transparent}
+.chip.off{opacity:.4}
+.chip.on-T{background:var(--sky);color:var(--ink)}
+.chip.on-PH{background:var(--must);color:var(--ink)}
+.chip.on-BH{background:var(--apri);color:var(--ink)}
+.chip.on-M{background:var(--verm);color:#fff}
+.chip.on-R{background:var(--pink);color:var(--ink)}
+.chip.on-C{background:#c93a1f;color:#fff}
+
+.mrow{display:flex;align-items:center;gap:6px;padding:10px 0;border-top:1.5px dashed var(--grid);flex-wrap:wrap}
+.mrow:first-of-type{border-top:none}
+.mrow .ctrl{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+@media(max-width:639px){ .mrow .ctrl{width:100%} }
+.mrow .att{width:46px;height:32px;border-radius:9999px;border:2px solid var(--ink);font-weight:900;font-size:12px;
+  box-shadow:2px 2px 0 var(--ink);cursor:pointer;padding:0}
+.mrow .att.yes{background:var(--sky)}
+.mrow .att.no{background:var(--paper2);color:var(--mute);box-shadow:none}
+.mrow .name{font-weight:700;font-size:15px;flex:1 1 90px;min-width:90px;overflow-wrap:anywhere}
+.badge{display:inline-block;border:2px solid var(--ink);border-radius:6px;background:var(--pink);
+  color:var(--ink);font-size:10.5px;font-weight:800;padding:0 6px;margin-left:6px;vertical-align:2px}
+select.pin{border:2px solid var(--ink);border-radius:9999px;padding:4px 8px;font-family:inherit;
+  font-weight:700;font-size:12.5px;background:var(--paper)}
+select.pin.set{background:var(--apri)}
+
+.verdict{border:2px solid var(--ink);border-radius:12px;padding:14px 16px;font-weight:800;margin:12px 0}
+.verdict.ok{background:var(--sky)}
+.verdict.mix{background:var(--must)}
+.verdict.ng{background:var(--verm);color:#fff;text-shadow:1.5px 1.5px 0 var(--ink)}
+.verdict small{display:block;font-weight:600;font-size:12.5px;margin-top:4px;text-shadow:none}
+.verdict.ng small{color:#fff}
+.statline{font-size:13px;color:var(--gray);font-weight:700}
+.statline b{color:var(--ink)}
+
+.party{display:grid;grid-template-columns:1fr;gap:10px;margin-top:16px}
+.rolebox{border:2px solid var(--ink);border-radius:12px;padding:10px 12px;box-shadow:3px 3px 0 var(--ink)}
+.rolebox.T{background:var(--sky)}
+.rolebox.H{background:var(--must)}
+.rolebox.D{background:var(--verm)}
+.rolebox.B{background:var(--paper2);box-shadow:none}
+.rolebox .rl{font-weight:900;font-size:13px;letter-spacing:1px}
+.rolebox.D .rl{color:#fff;text-shadow:1.5px 1.5px 0 var(--ink)}
+.pchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.pchip{background:var(--paper);border:2px solid var(--ink);border-radius:9999px;
+  font-weight:800;font-size:14px;padding:3px 12px}
+.pchip.fixed{background:var(--apri)}
+.pchip small{font-weight:700;font-size:10.5px;color:var(--gray);margin-right:4px}
+
+details{border:2px solid var(--ink);border-radius:12px;background:var(--paper2)}
+details summary{cursor:pointer;font-weight:800;padding:12px 16px;user-select:none}
+.plist{max-height:440px;overflow-y:auto;padding:0 16px 12px;font-size:13px}
+.plist .p{border-top:1.5px dashed var(--grid);padding:8px 0;line-height:1.6}
+.plist .p b.t{color:#1a7fa8}.plist .p b.h{color:#a86f00}.plist .p b.d{color:var(--verm)}
+.plist .p .bn{color:var(--mute)}
+.note{font-size:12.5px;color:var(--gray);margin-top:8px}
+.ess{margin-top:10px;font-size:13px;font-weight:700;background:var(--apri);border:2px solid var(--ink);border-radius:12px;padding:8px 12px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
+label.tgl{font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+label.tgl input{width:18px;height:18px;accent-color:var(--verm)}
+.footer{font-family:"Consolas","Menlo",monospace;font-size:12px;color:var(--mute);text-align:center}
+@media(min-width:560px){ .party{grid-template-columns:1fr 1fr} .party .full{grid-column:1/-1} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <h1>party simulator</h1>
+    <p>極周回のロール編成 — 理想形: タンク2 ／ ピュア1＋バリア1 ／ 近接2＋レンジ1＋キャス1</p>
+    <span class="mono">members &gt; roles &gt; patterns</span>
+  </div>
+
+  <div class="card">
+    <h2>メンバー<span class="cnt" id="mcount"></span></h2>
+    <div class="addrow">
+      <input type="text" id="addName" placeholder="名前（例: こてつ）" maxlength="20">
+      <button class="sky" id="btnAdd">＋追加</button>
+      <button id="btnAddGuest">＋スケットで追加</button>
+    </div>
+    <div class="chiprow" id="addChips"></div>
+    <div id="mlist"></div>
+    <p class="note">「今日」＝出席トグル／チップタップで「できるロール」切替（ピュア・バリア＝ヒーラー、近接・レンジ・キャス＝DPS）／ピン＝その人をその席に固定。スケットは名簿に残るので、来ない日は「今日」をオフ。</p>
+  </div>
+
+  <div class="card">
+    <h2>きょうの編成</h2>
+    <div class="statline" id="stats"></div>
+    <div id="verdict"></div>
+    <div class="toolbar">
+      <button class="primary" id="btnGacha">🎲 編成ガチャ</button>
+      <label class="tgl"><input type="checkbox" id="tglIdeal" checked>理想形を優先</label>
+      <span class="note" id="gachaNote"></span>
+    </div>
+    <div id="essBox"></div>
+    <div class="party" id="proposal" style="display:none"></div>
+  </div>
+
+  <div class="card">
+    <h2>パターン一覧<span class="cnt" id="pcount"></span></h2>
+    <div class="toolbar" style="margin-top:0;margin-bottom:10px">
+      <label class="tgl"><input type="checkbox" id="tglListIdeal" checked>✨理想形のみ表示</label>
+    </div>
+    <details open>
+      <summary>一覧（席の入れ替えだけの違いは1つに畳んでます）</summary>
+      <div class="plist" id="plist"></div>
+    </details>
+  </div>
+
+  <div class="card">
+    <h2>共有</h2>
+    <div class="toolbar" style="margin-top:0">
+      <button class="sky" id="btnShare">共有リンクをコピー</button>
+      <span class="note">名簿ごとURLに乗ります。Discordに貼れば同じ名簿で開けます（開いた側で取り込み確認あり）</span>
+    </div>
+  </div>
+
+  <p class="footer">party-sim v2 — ローカル保存（この端末のブラウザ内）／ FF14 tracker 別館</p>
+</div>
+
+<script>
+/* ================= SOLVER (pure) ================= */
+/*SOLVER-BEGIN*/
+// 6分類: T / PH(ピュア) / BH(バリア) / M(近接) / R(レンジ) / C(キャス)
+// 粗ロール: T=T, H=PH|BH, D=M|R|C。編成の必須条件は 2T/2H/4D。
+// 理想形: T2・PH1+BH1・M2+R1+C1 に「席の割当が存在する」パターン。
+const SUB = ['T','PH','BH','M','R','C'];
+const SUBLABEL = {T:'T', PH:'ピュア', BH:'バリア', M:'近接', R:'レンジ', C:'キャス'};
+const NEED = {T:2, H:2, D:4};
+const coarse = p => ({T: !!p.T, H: !!(p.PH||p.BH), D: !!(p.M||p.R||p.C)});
+const pinCoarse = pin => pin==='T' ? 'T' : (pin==='PH'||pin==='BH') ? 'H' : (pin ? 'D' : null);
+
+function C2(n,k){ if(k<0||n<0||k>n) return 0; k=Math.min(k,n-k); let r=1; for(let i=0;i<k;i++) r=r*(n-i)/(i+1); return Math.round(r); }
+function* combos(arr,k){
+  const n=arr.length;
+  if(k===0){ yield []; return; }
+  if(k>n) return;
+  const idx=Array.from({length:k},(_,i)=>i);
+  while(true){
+    yield idx.map(i=>arr[i]);
+    let i=k-1;
+    while(i>=0 && idx[i]===n-k+i) i--;
+    if(i<0) return;
+    idx[i]++;
+    for(let j=i+1;j<k;j++) idx[j]=idx[j-1]+1;
+  }
+}
+function unrankCombo(arr,k,idx){
+  const out=[]; let start=0, n=arr.length;
+  for(let slot=k; slot>0; slot--){
+    for(let i=start;i<n;i++){
+      const block=C2(n-1-i,slot-1);
+      if(idx<block){ out.push(arr[i]); start=i+1; break; }
+      idx-=block;
+    }
+  }
+  return out;
+}
+
+// ヒーラー2人の理想席割当（ピン尊重）。成立なら {PH:p, BH:p}
+function healSeat(hs){
+  const tries = [[hs[0],hs[1]],[hs[1],hs[0]]];
+  for(const [a,b] of tries){
+    if(!a.PH || !b.BH) continue;
+    if(a.pin && a.pin!=='PH' && pinCoarse(a.pin)==='H') continue;
+    if(b.pin && b.pin!=='BH' && pinCoarse(b.pin)==='H') continue;
+    return {PH:a, BH:b};
+  }
+  return null;
+}
+// DPS4人を席[M,M,R,C]へ（ピン尊重）。成立なら {M:[p,p], R:p, C:p}
+function dpsSeat(ds){
+  const seats=['M','M','R','C'];
+  const perm=(rest,acc)=>{
+    const si=acc.length;
+    if(si===4) return acc;
+    const seat=seats[si];
+    for(let i=0;i<rest.length;i++){
+      const p=rest[i];
+      if(!p[seat]) continue;
+      if(p.pin && pinCoarse(p.pin)==='D' && p.pin!==seat) continue;
+      const r=perm(rest.slice(0,i).concat(rest.slice(i+1)), acc.concat([[seat,p]]));
+      if(r) return r;
+    }
+    return null;
+  };
+  const r=perm(ds,[]);
+  if(!r) return null;
+  const out={M:[],R:null,C:null};
+  for(const [seat,p] of r){ if(seat==='M') out.M.push(p); else out[seat]=p; }
+  return out;
+}
+function checkIdeal(pat){
+  const h=healSeat(pat.H);
+  if(!h) return null;
+  const d=dpsSeat(pat.D);
+  if(!d) return null;
+  return {heal:h, dps:d};
+}
+
+// att: 出席者 [{id,name,T,PH,BH,M,R,C,pin}] / 返り値: 解析一式
+function analyze(att, opt={}){
+  const capPat = opt.capPat ?? 300;      // 表示用パターン上限
+  const capIdeal = opt.capIdeal ?? 20000; // ガチャ用理想プール上限
+  const budget = opt.budget ?? 600000;   // 展開反復の安全上限
+  const res={ total:0, idealTotal:0, patterns:[], idealPool:[], reasons:[], capped:false };
+
+  const pinned={T:[],H:[],D:[]};
+  for(const p of att){
+    if(!p.pin) continue;
+    if(!p[p.pin]){ res.reasons.push(`${p.name}を「${SUBLABEL[p.pin]}」にピンしているが、そのロールができない設定`); return res; }
+    pinned[pinCoarse(p.pin)].push(p);
+  }
+  const need={};
+  for(const r of ['T','H','D']){
+    need[r]=NEED[r]-pinned[r].length;
+    if(need[r]<0){ res.reasons.push(`${r==='T'?'タンク':r==='H'?'ヒーラー':'DPS'}のピンが${NEED[r]}人を超えている`); return res; }
+  }
+  if(att.length<8){ res.reasons.push(`出席が${att.length}人（8人必要）`); return res; }
+
+  const free=att.filter(p=>!p.pin);
+  const fT=free.filter(p=>coarse(p).T), fH=free.filter(p=>coarse(p).H), fD=free.filter(p=>coarse(p).D);
+  let it=0;
+  outer:
+  for(const Ts of combos(fT,need.T)){
+    const tset=new Set(Ts.map(p=>p.id));
+    const hPool=fH.filter(p=>!tset.has(p.id));
+    for(const Hs of combos(hPool,need.H)){
+      const hset=new Set(Hs.map(p=>p.id));
+      const dPool=fD.filter(p=>!tset.has(p.id)&&!hset.has(p.id));
+      if(dPool.length<need.D) continue;
+      for(const Ds of combos(dPool,need.D)){
+        if(++it>budget){ res.capped=true; break outer; }
+        res.total++;
+        const pat=build(att,pinned,Ts,Hs,Ds);
+        const ideal=checkIdeal(pat);
+        if(ideal){
+          res.idealTotal++;
+          pat.ideal=ideal;
+          if(res.idealPool.length<capIdeal) res.idealPool.push(pat);
+        }
+        if(res.patterns.length<capPat) res.patterns.push(pat);
+        else if(ideal && !res.patterns.some(x=>x.ideal) ) res.patterns[capPat-1]=pat;
+      }
+    }
+  }
+  if(res.total===0){
+    const cnt=f=>att.filter(p=>f(p)&&true).length;
+    const cc={T:att.filter(p=>coarse(p).T).length, H:att.filter(p=>coarse(p).H).length, D:att.filter(p=>coarse(p).D).length};
+    if(cc.T<2) res.reasons.push(`タンクができる出席者が${cc.T}人（2人必要）`);
+    if(cc.H<2) res.reasons.push(`ヒーラーができる出席者が${cc.H}人（2人必要）`);
+    if(cc.D<4) res.reasons.push(`DPSができる出席者が${cc.D}人（4人必要）`);
+    if(!res.reasons.length) res.reasons.push('ロールの組み合わせが噛み合わない（誰かのロールを増やすかピンを見直す）');
+  } else if(res.idealTotal===0){
+    const seatCnt={PH:att.filter(p=>p.PH).length, BH:att.filter(p=>p.BH).length,
+                   M:att.filter(p=>p.M).length, R:att.filter(p=>p.R).length, C:att.filter(p=>p.C).length};
+    const lack=[];
+    if(seatCnt.PH<1) lack.push('ピュア0人');
+    if(seatCnt.BH<1) lack.push('バリア0人');
+    if(seatCnt.M<2) lack.push(`近接${seatCnt.M}人（2人必要）`);
+    if(seatCnt.R<1) lack.push('レンジ0人');
+    if(seatCnt.C<1) lack.push('キャス0人');
+    res.idealLack = lack.length ? lack.join('・') : '席の取り合いで理想配置が作れない';
+  }
+  return res;
+}
+function build(att,pinned,Ts,Hs,Ds){
+  const T=[...pinned.T,...Ts], H=[...pinned.H,...Hs], D=[...pinned.D,...Ds];
+  const used=new Set([...T,...H,...D].map(p=>p.id));
+  return {T,H,D,bench:att.filter(p=>!used.has(p.id)), ideal:null};
+}
+// 全体プール（理想に限らない）から一様に1つ（閉形式スキップ・ガチャのフォールバック用）
+function pickAt(att, idx){
+  const pinned={T:[],H:[],D:[]};
+  for(const p of att) if(p.pin) pinned[pinCoarse(p.pin)].push(p);
+  const need={T:NEED.T-pinned.T.length, H:NEED.H-pinned.H.length, D:NEED.D-pinned.D.length};
+  const free=att.filter(p=>!p.pin);
+  const fT=free.filter(p=>coarse(p).T), fH=free.filter(p=>coarse(p).H), fD=free.filter(p=>coarse(p).D);
+  for(const Ts of combos(fT,need.T)){
+    const tset=new Set(Ts.map(p=>p.id));
+    const hPool=fH.filter(p=>!tset.has(p.id));
+    for(const Hs of combos(hPool,need.H)){
+      const hset=new Set(Hs.map(p=>p.id));
+      const dPool=fD.filter(p=>!tset.has(p.id)&&!hset.has(p.id));
+      const ways=C2(dPool.length,need.D);
+      if(idx<ways){ const pat=build(att,pinned,Ts,Hs,unrankCombo(dPool,need.D,idx)); pat.ideal=checkIdeal(pat); return pat; }
+      idx-=ways;
+    }
+  }
+  return null;
+}
+// 粗い総数だけ（capped時の正確な総数・必須メンバー判定用）
+function countTotal(att){
+  const pinned={T:[],H:[],D:[]};
+  for(const p of att){ if(p.pin){ if(!p[p.pin]) return 0; pinned[pinCoarse(p.pin)].push(p); } }
+  const need={T:NEED.T-pinned.T.length, H:NEED.H-pinned.H.length, D:NEED.D-pinned.D.length};
+  if(need.T<0||need.H<0||need.D<0||att.length<8) return 0;
+  const free=att.filter(p=>!p.pin);
+  const fT=free.filter(p=>coarse(p).T), fH=free.filter(p=>coarse(p).H), fD=free.filter(p=>coarse(p).D);
+  let tot=0;
+  for(const Ts of combos(fT,need.T)){
+    const tset=new Set(Ts.map(p=>p.id));
+    const hPool=fH.filter(p=>!tset.has(p.id));
+    for(const Hs of combos(hPool,need.H)){
+      const hset=new Set(Hs.map(p=>p.id));
+      const dPool=fD.filter(p=>!tset.has(p.id)&&!hset.has(p.id));
+      tot+=C2(dPool.length,need.D);
+    }
+  }
+  return tot;
+}
+const okWithout=(att,p)=>countTotal(att.filter(x=>x.id!==p.id))>0;
+/*SOLVER-END*/
+
+/* ================= UI ================= */
+const LS='partySim1';
+let S=load();
+function load(){
+  try{
+    const j=JSON.parse(localStorage.getItem(LS));
+    if(j&&Array.isArray(j.members)){
+      // v1(T/H/D)→v2(6分類)の移行
+      for(const m of j.members){
+        if(m.H!==undefined && m.PH===undefined){ m.PH=!!m.H; m.BH=!!m.H; delete m.H; }
+        if(m.D!==undefined && m.M===undefined){ m.M=!!m.D; m.R=!!m.D; m.C=!!m.D; delete m.D; }
+        for(const r of SUB) m[r]=!!m[r];
+        if(m.pin && !SUB.includes(m.pin)) m.pin = m.pin==='T' ? 'T' : null;
+      }
+      return j;
+    }
+  }catch(e){}
+  return {members:[]};
+}
+function save(){ localStorage.setItem(LS, JSON.stringify(S)); }
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+
+/* 追加フォームのロールチップ */
+const addSel={T:false,PH:false,BH:false,M:true,R:false,C:false};
+(function(){
+  const box=$('addChips');
+  for(const r of SUB){
+    const el=document.createElement('span');
+    el.textContent=SUBLABEL[r];
+    el.onclick=()=>{ addSel[r]=!addSel[r]; el.className='chip '+(addSel[r]?'on-'+r:'off'); };
+    el.className='chip '+(addSel[r]?'on-'+r:'off');
+    box.appendChild(el);
+  }
+})();
+
+function addMember(guest){
+  const name=$('addName').value.trim();
+  if(!name){ $('addName').focus(); return; }
+  if(S.members.some(m=>m.name===name)){ alert('同じ名前がいます'); return; }
+  if(!SUB.some(r=>addSel[r])){ alert('できるロールを1つ以上選んでください'); return; }
+  const m={id:uid(),name,guest:!!guest,active:true,pin:null};
+  for(const r of SUB) m[r]=addSel[r];
+  S.members.push(m);
+  $('addName').value='';
+  save(); render();
+}
+$('btnAdd').onclick=()=>addMember(false);
+$('btnAddGuest').onclick=()=>addMember(true);
+$('addName').addEventListener('keydown',e=>{ if(e.key==='Enter') addMember(false); });
+
+const byId=id=>S.members.find(m=>m.id===id);
+function renderMembers(){
+  const box=$('mlist'); box.innerHTML='';
+  for(const m of S.members){
+    const row=document.createElement('div'); row.className='mrow';
+    row.innerHTML=
+      `<button class="att ${m.active?'yes':'no'}" data-a="${m.id}">${m.active?'今日':'休み'}</button>`+
+      `<span class="name">${esc(m.name)}${m.guest?'<span class="badge">スケット</span>':''}</span>`+
+      `<div class="ctrl">`+
+        SUB.map(r=>`<span class="chip ${m[r]?'on-'+r:'off'}" data-r="${r}" data-id="${m.id}">${SUBLABEL[r]}</span>`).join('')+
+        `<select class="pin ${m.pin?'set':''}" data-p="${m.id}">
+           <option value="">ピンなし</option>
+           ${SUB.map(r=>`<option value="${r}" ${m.pin===r?'selected':''} ${m[r]?'':'disabled'}>${SUBLABEL[r]}固定</option>`).join('')}
+         </select>`+
+        `<button class="ghost" data-x="${m.id}">削除</button>`+
+      `</div>`;
+    box.appendChild(row);
+  }
+  $('mcount').textContent=S.members.length?`${S.members.length}人（うちスケット${S.members.filter(m=>m.guest).length}）`:'';
+  box.onclick=e=>{
+    const t=e.target;
+    if(t.dataset.a){ const m=byId(t.dataset.a); m.active=!m.active; if(!m.active) m.pin=null; save(); render(); }
+    if(t.dataset.r){ const m=byId(t.dataset.id); m[t.dataset.r]=!m[t.dataset.r]; if(m.pin&&!m[m.pin]) m.pin=null; save(); render(); }
+    if(t.dataset.x){ const m=byId(t.dataset.x); if(confirm(`${m.name} を名簿から削除する？`)){ S.members=S.members.filter(x=>x.id!==t.dataset.x); save(); render(); } }
+  };
+  box.onchange=e=>{ const t=e.target; if(t.dataset.p){ byId(t.dataset.p).pin=t.value||null; save(); render(); } };
+}
+
+let last=null;
+function renderAnalysis(){
+  const att=S.members.filter(m=>m.active);
+  const c=f=>att.filter(f).length;
+  const st=(l,n)=>`<span class="st">${l} <b>${n}</b></span>`;
+  $('stats').innerHTML=att.length
+    ? [st('出席',att.length+'人'),st('T',c(p=>p.T)),st('ピュア',c(p=>p.PH)),st('バリア',c(p=>p.BH)),st('近接',c(p=>p.M)),st('レンジ',c(p=>p.R)),st('キャス',c(p=>p.C))]
+        .concat(att.length>8?[st('待機',(att.length-8)+'人/回')]:[]).join(' ／ ')
+    : 'メンバーを追加して「今日」をオンにしてください';
+  const r=analyze(att);
+  if(r.capped) r.total=countTotal(att);
+  last={r,att};
+  const v=$('verdict');
+  if(!att.length){ v.innerHTML=''; $('essBox').innerHTML=''; renderPatterns(); return; }
+  if(r.total>0 && r.idealTotal>0){
+    v.innerHTML=`<div class="verdict ok">✨ 理想形が組めます — 理想 ${r.idealTotal.toLocaleString()}${r.capped?'+':''} ／ 全 ${r.total.toLocaleString()} パターン</div>`;
+  } else if(r.total>0){
+    v.innerHTML=`<div class="verdict mix">組めますが理想形にはなりません（ごっちゃ ${r.total.toLocaleString()} パターン）<small>足りない席: ${esc(r.idealLack||'')}</small></div>`;
+  } else {
+    v.innerHTML=`<div class="verdict ng">組めません<small>${r.reasons.map(esc).join('｜')}</small></div>`;
+    $('essBox').innerHTML=''; $('proposal').style.display='none'; renderPatterns(); return;
+  }
+  const ess=att.filter(p=>!okWithout(att,p));
+  $('essBox').innerHTML=ess.length?`<div class="ess">⭐ この人が休むと組めなくなる: ${ess.map(p=>esc(p.name)).join('・')}</div>`:'';
+  renderPatterns();
+}
+function renderPatterns(){
+  const r=last&&last.r;
+  const onlyIdeal=$('tglListIdeal').checked;
+  if(!r||!r.total){ $('pcount').textContent=''; $('plist').innerHTML='<div class="p">（パターンなし）</div>'; return; }
+  const src=onlyIdeal? r.idealPool : r.patterns;
+  const totalShown=onlyIdeal? r.idealTotal : r.total;
+  const list=src.slice(0,300);
+  $('pcount').textContent=`${totalShown.toLocaleString()}${r.capped?'+':''}件${totalShown>list.length?`（先頭${list.length}件を表示）`:''}`;
+  const seatTxt=p=>{
+    if(!p.ideal) return '';
+    const s=p.ideal;
+    return ` <span class="bn">［ピュア:${esc(s.heal.PH.name)} バリア:${esc(s.heal.BH.name)}／近接:${s.dps.M.map(x=>esc(x.name)).join('・')} レンジ:${esc(s.dps.R.name)} キャス:${esc(s.dps.C.name)}］</span>`;
+  };
+  $('plist').innerHTML=list.map((p,i)=>
+    `<div class="p">#${i+1}${p.ideal?' ✨':''}　<b class="t">T</b> ${p.T.map(x=>esc(x.name)).join('・')}　<b class="h">H</b> ${p.H.map(x=>esc(x.name)).join('・')}　<b class="d">D</b> ${p.D.map(x=>esc(x.name)).join('・')}`+
+    (p.bench.length?`　<span class="bn">待機: ${p.bench.map(x=>esc(x.name)).join('・')}</span>`:'')+seatTxt(p)+`</div>`).join('')
+    || '<div class="p">（該当なし）</div>';
+}
+$('tglListIdeal').onchange=renderPatterns;
+
+$('btnGacha').onclick=()=>{
+  if(!last||!last.r.total){ $('gachaNote').textContent='組めるようになってから引いてね'; return; }
+  const {r,att}=last;
+  const preferIdeal=$('tglIdeal').checked;
+  let pat=null, note='';
+  if(preferIdeal && r.idealPool.length){
+    pat=r.idealPool[Math.floor(Math.random()*r.idealPool.length)];
+    note=`理想形 ${r.idealTotal.toLocaleString()}通りから1つ`;
+  } else {
+    pat=pickAt(att, Math.floor(Math.random()*r.total));
+    note=`全 ${r.total.toLocaleString()}通りから1つ${preferIdeal?'（理想形が無いのでごっちゃ）':''}`;
+  }
+  if(!pat) return;
+  $('gachaNote').textContent=note;
+  const box=$('proposal'); box.style.display='';
+  const pinnedIds=new Set(att.filter(x=>x.pin).map(x=>x.id));
+  const chip=(x,seat)=>`<span class="pchip ${pinnedIds.has(x.id)?'fixed':''}">${seat?`<small>${seat}</small>`:''}${esc(x.name)}</span>`;
+  let hHtml, dHtml;
+  if(pat.ideal){
+    hHtml=chip(pat.ideal.heal.PH,'ピュア')+chip(pat.ideal.heal.BH,'バリア');
+    dHtml=pat.ideal.dps.M.map(x=>chip(x,'近接')).join('')+chip(pat.ideal.dps.R,'レンジ')+chip(pat.ideal.dps.C,'キャス');
+  } else {
+    hHtml=pat.H.map(x=>chip(x)).join('');
+    dHtml=pat.D.map(x=>chip(x)).join('');
+  }
+  box.innerHTML=
+    `<div class="rolebox T"><span class="rl">TANK</span><div class="pchips">${pat.T.map(x=>chip(x)).join('')}</div></div>`+
+    `<div class="rolebox H"><span class="rl">HEALER${pat.ideal?'':'（ごっちゃ）'}</span><div class="pchips">${hHtml}</div></div>`+
+    `<div class="rolebox D full"><span class="rl">DPS${pat.ideal?'':'（ごっちゃ）'}</span><div class="pchips">${dHtml}</div></div>`+
+    (pat.bench.length?`<div class="rolebox B full"><span class="rl">待機</span><div class="pchips">${pat.bench.map(x=>chip(x)).join('')}</div></div>`:'');
+};
+
+/* 共有リンク */
+$('btnShare').onclick=async()=>{
+  const data=S.members.map(m=>[m.name, SUB.filter(r=>m[r]).join(''), m.guest?1:0, m.pin||'']);
+  const hash='#s='+btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+  const url=location.origin+location.pathname+hash;
+  try{ await navigator.clipboard.writeText(url); $('btnShare').textContent='コピーしました！'; }
+  catch(e){ prompt('このURLをコピー:',url); }
+  setTimeout(()=>$('btnShare').textContent='共有リンクをコピー',1600);
+};
+(function importFromHash(){
+  const m=location.hash.match(/#s=(.+)/);
+  if(!m) return;
+  try{
+    const data=JSON.parse(decodeURIComponent(escape(atob(m[1]))));
+    if(!Array.isArray(data)||!data.length) return;
+    if(S.members.length && !confirm(`共有された名簿（${data.length}人）を読み込む？（今の名簿は上書きされます）`)){ history.replaceState(null,'',location.pathname); return; }
+    S.members=data.map(([name,roles,guest,pin])=>{
+      const mm={id:uid(), name:String(name).slice(0,20), guest:!!guest, active:true, pin:SUB.includes(pin)?pin:null};
+      // rolesは 'T','PH','BH','M','R','C' の連結。二文字トークン優先で解釈
+      for(const r of SUB) mm[r]=false;
+      let s=String(roles);
+      for(const tok of ['PH','BH']){ if(s.includes(tok)){ mm[tok]=true; s=s.replaceAll(tok,''); } }
+      for(const ch of s) if(['T','M','R','C'].includes(ch)) mm[ch]=true;
+      if(mm.pin && !mm[mm.pin]) mm.pin=null;
+      return mm;
+    });
+    save();
+  }catch(e){ console.warn('share import failed',e); }
+  history.replaceState(null,'',location.pathname);
+})();
+
+function render(){ renderMembers(); renderAnalysis(); }
+render();
+</script>
+</body>
+</html>
