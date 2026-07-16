@@ -407,6 +407,23 @@ const okWithout=(att,p)=>countTotal(att.filter(x=>x.id!==p.id))>0;
 
 /* ================= UI ================= */
 const LS='partySim1';
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+// 初期名簿（その翼を授けて・2026-07-16時点の自己紹介から。△=練度低め申告）
+// 初回アクセス時のみ流し込み。以後は各端末のローカル保存が正。
+const DEFAULT_ROSTER=[
+  ['もると','PHMC'],['さくぴ','T!PHBH!MR!C'],['こてつ','TBHC'],['くりあ','!TMRC'],
+  ['のあ','TPHBHMR!C'],['きの','BHMC'],['ぼせつ','!TPHBHMRC'],['るん','TPH!BH'],
+  ['ちゃる','TPHBHC'],['まあや','TR'],
+];
+function fromRoles(name,roles,guest){
+  const mm={id:uid(),name,guest:!!guest,active:true,pin:null};
+  for(const r of SUB) mm[r]=0;
+  for(const tok of (String(roles).match(/!?(?:PH|BH|[TMRC])/g)||[])){
+    const sub=tok.startsWith('!');
+    mm[sub?tok.slice(1):tok]=sub?2:1;
+  }
+  return mm;
+}
 let S=load();
 function load(){
   try{
@@ -422,12 +439,11 @@ function load(){
       return j;
     }
   }catch(e){}
-  return {members:[]};
+  return {members: DEFAULT_ROSTER.map(([n,r])=>fromRoles(n,r,false))};
 }
 function save(){ localStorage.setItem(LS, JSON.stringify(S)); }
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const chipClass=(v,r)=> v===1 ? 'chip on-'+r : v===2 ? 'chip sub-'+r : 'chip off';
 const chipLabel=(v,r)=> SUBLABEL[r] + (v===2 ? '△' : '');
 
