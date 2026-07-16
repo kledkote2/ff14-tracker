@@ -55,7 +55,7 @@ button.ghost:active{transform:none}
 .addrow input[type=text]:focus{outline:3px solid var(--sky)}
 .chiprow{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
 
-/* ロールチップ（6分類） */
+/* ロールチップ: off → on → sub(△できるが避けたい) の3状態 */
 .chip{display:inline-flex;align-items:center;justify-content:center;height:32px;
   border:2px solid var(--ink);border-radius:9999px;font-weight:900;font-size:12.5px;cursor:pointer;
   background:var(--paper);color:var(--mute);user-select:none;padding:0 11px;-webkit-tap-highlight-color:transparent}
@@ -66,6 +66,12 @@ button.ghost:active{transform:none}
 .chip.on-M{background:var(--verm);color:#fff}
 .chip.on-R{background:var(--pink);color:var(--ink)}
 .chip.on-C{background:#c93a1f;color:#fff}
+.chip.sub-T{background:var(--paper);color:#1a7fa8}
+.chip.sub-PH{background:var(--paper);color:#a86f00}
+.chip.sub-BH{background:var(--paper);color:#b5651d}
+.chip.sub-M{background:var(--paper);color:var(--verm)}
+.chip.sub-R{background:var(--paper);color:#c2456f}
+.chip.sub-C{background:var(--paper);color:#c93a1f}
 
 .mrow{display:flex;align-items:center;gap:6px;padding:10px 0;border-top:1.5px dashed var(--grid);flex-wrap:wrap}
 .mrow:first-of-type{border-top:none}
@@ -103,6 +109,7 @@ select.pin.set{background:var(--apri)}
 .pchip{background:var(--paper);border:2px solid var(--ink);border-radius:9999px;
   font-weight:800;font-size:14px;padding:3px 12px}
 .pchip.fixed{background:var(--apri)}
+.pchip.warn{background:#ffe9e4}
 .pchip small{font-weight:700;font-size:10.5px;color:var(--gray);margin-right:4px}
 
 details{border:2px solid var(--ink);border-radius:12px;background:var(--paper2)}
@@ -111,6 +118,7 @@ details summary{cursor:pointer;font-weight:800;padding:12px 16px;user-select:non
 .plist .p{border-top:1.5px dashed var(--grid);padding:8px 0;line-height:1.6}
 .plist .p b.t{color:#1a7fa8}.plist .p b.h{color:#a86f00}.plist .p b.d{color:var(--verm)}
 .plist .p .bn{color:var(--mute)}
+.plist .p .wr{color:var(--verm);font-weight:700}
 .note{font-size:12.5px;color:var(--gray);margin-top:8px}
 .ess{margin-top:10px;font-size:13px;font-weight:700;background:var(--apri);border:2px solid var(--ink);border-radius:12px;padding:8px 12px}
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
@@ -138,7 +146,7 @@ label.tgl input{width:18px;height:18px;accent-color:var(--verm)}
     </div>
     <div class="chiprow" id="addChips"></div>
     <div id="mlist"></div>
-    <p class="note">「今日」＝出席トグル／チップタップで「できるロール」切替（ピュア・バリア＝ヒーラー、近接・レンジ・キャス＝DPS）／ピン＝その人をその席に固定。スケットは名簿に残るので、来ない日は「今日」をオフ。</p>
+    <p class="note">「今日」＝出席トグル／チップは<b>タップで3段階</b>: できる → <b>△できるが避けたい（練度低め申告）</b> → できない。△はガチャと理想判定でなるべく使わない席になります。ピン＝その人をその席に固定。スケットは名簿に残るので、来ない日は「今日」をオフ。</p>
   </div>
 
   <div class="card">
@@ -160,7 +168,7 @@ label.tgl input{width:18px;height:18px;accent-color:var(--verm)}
       <label class="tgl"><input type="checkbox" id="tglListIdeal" checked>✨理想形のみ表示</label>
     </div>
     <details open>
-      <summary>一覧（席の入れ替えだけの違いは1つに畳んでます）</summary>
+      <summary>一覧（席の入れ替えだけの違いは1つに畳んでます／△なし優先で並びます）</summary>
       <div class="plist" id="plist"></div>
     </details>
   </div>
@@ -173,20 +181,24 @@ label.tgl input{width:18px;height:18px;accent-color:var(--verm)}
     </div>
   </div>
 
-  <p class="footer">party-sim v2 — ローカル保存（この端末のブラウザ内）／ FF14 tracker 別館</p>
+  <p class="footer">party-sim v3 — ローカル保存（この端末のブラウザ内）／ FF14 tracker 別館</p>
 </div>
 
 <script>
 /* ================= SOLVER (pure) ================= */
 /*SOLVER-BEGIN*/
 // 6分類: T / PH(ピュア) / BH(バリア) / M(近接) / R(レンジ) / C(キャス)
-// 粗ロール: T=T, H=PH|BH, D=M|R|C。編成の必須条件は 2T/2H/4D。
-// 理想形: T2・PH1+BH1・M2+R1+C1 に「席の割当が存在する」パターン。
+// 各ロール値: 0=できない / 1=できる / 2=できるが避けたい(△)
+// 粗ロール: T, H=PH|BH, D=M|R|C。編成の必須条件は 2T/2H/4D。
+// 理想形: T2・PH1+BH1・M2+R1+C1 に席割当が存在するパターン。
+// ペナルティ: △の席に座る人数。0が「練度配慮OK」。
 const SUB = ['T','PH','BH','M','R','C'];
 const SUBLABEL = {T:'T', PH:'ピュア', BH:'バリア', M:'近接', R:'レンジ', C:'キャス'};
 const NEED = {T:2, H:2, D:4};
-const coarse = p => ({T: !!p.T, H: !!(p.PH||p.BH), D: !!(p.M||p.R||p.C)});
+const can = (p,r) => (p[r]|0) >= 1;
+const coarse = p => ({T: can(p,'T'), H: can(p,'PH')||can(p,'BH'), D: can(p,'M')||can(p,'R')||can(p,'C')});
 const pinCoarse = pin => pin==='T' ? 'T' : (pin==='PH'||pin==='BH') ? 'H' : (pin ? 'D' : null);
+const pen = (p,r) => (p[r]|0)===2 ? 1 : 0;
 
 function C2(n,k){ if(k<0||n<0||k>n) return 0; k=Math.min(k,n-k); let r=1; for(let i=0;i<k;i++) r=r*(n-i)/(i+1); return Math.round(r); }
 function* combos(arr,k){
@@ -215,58 +227,69 @@ function unrankCombo(arr,k,idx){
   return out;
 }
 
-// ヒーラー2人の理想席割当（ピン尊重）。成立なら {PH:p, BH:p}
+// ヒーラー2人の理想席割当: ペナルティ最小の割当を返す（ピン尊重）。不成立ならnull
 function healSeat(hs){
-  const tries = [[hs[0],hs[1]],[hs[1],hs[0]]];
-  for(const [a,b] of tries){
-    if(!a.PH || !b.BH) continue;
-    if(a.pin && a.pin!=='PH' && pinCoarse(a.pin)==='H') continue;
-    if(b.pin && b.pin!=='BH' && pinCoarse(b.pin)==='H') continue;
-    return {PH:a, BH:b};
+  let best=null;
+  for(const [a,b] of [[hs[0],hs[1]],[hs[1],hs[0]]]){
+    if(!can(a,'PH') || !can(b,'BH')) continue;
+    if(a.pin && pinCoarse(a.pin)==='H' && a.pin!=='PH') continue;
+    if(b.pin && pinCoarse(b.pin)==='H' && b.pin!=='BH') continue;
+    const c=pen(a,'PH')+pen(b,'BH');
+    if(!best || c<best.cost) best={PH:a, BH:b, cost:c};
   }
-  return null;
+  return best;
 }
-// DPS4人を席[M,M,R,C]へ（ピン尊重）。成立なら {M:[p,p], R:p, C:p}
+// DPS4人を席[M,M,R,C]へ: ペナルティ最小割当（ピン尊重）。不成立ならnull
 function dpsSeat(ds){
   const seats=['M','M','R','C'];
-  const perm=(rest,acc)=>{
+  let best=null;
+  const perm=(rest,acc,cost)=>{
+    if(best && best.cost===0 && cost>=0 && acc.length===0) {} // no-op
     const si=acc.length;
-    if(si===4) return acc;
+    if(si===4){ if(!best||cost<best.cost) best={assign:acc.slice(),cost}; return; }
     const seat=seats[si];
     for(let i=0;i<rest.length;i++){
       const p=rest[i];
-      if(!p[seat]) continue;
+      if(!can(p,seat)) continue;
       if(p.pin && pinCoarse(p.pin)==='D' && p.pin!==seat) continue;
-      const r=perm(rest.slice(0,i).concat(rest.slice(i+1)), acc.concat([[seat,p]]));
-      if(r) return r;
+      if(best && best.cost===0) return; // これ以上良くならない
+      perm(rest.slice(0,i).concat(rest.slice(i+1)), acc.concat([[seat,p]]), cost+pen(p,seat));
     }
-    return null;
   };
-  const r=perm(ds,[]);
-  if(!r) return null;
-  const out={M:[],R:null,C:null};
-  for(const [seat,p] of r){ if(seat==='M') out.M.push(p); else out[seat]=p; }
+  perm(ds,[],0);
+  if(!best) return null;
+  const out={M:[],R:null,C:null,cost:best.cost};
+  for(const [seat,p] of best.assign){ if(seat==='M') out.M.push(p); else out[seat]=p; }
   return out;
 }
+// 理想チェック＋最小ペナルティ席割当。タンク席のペナルティも合算
 function checkIdeal(pat){
   const h=healSeat(pat.H);
   if(!h) return null;
   const d=dpsSeat(pat.D);
   if(!d) return null;
-  return {heal:h, dps:d};
+  const tCost=pat.T.reduce((s,p)=>s+pen(p,'T'),0);
+  return {heal:h, dps:d, penalty:tCost+h.cost+d.cost};
+}
+// 非理想パターンの推定ペナルティ（各人が粗スロット内で一番マシなロールに座る前提）
+function estPenalty(pat){
+  const bestIn=(p,rs)=>Math.min(...rs.filter(r=>can(p,r)).map(r=>pen(p,r)));
+  return pat.T.reduce((s,p)=>s+pen(p,'T'),0)
+    + pat.H.reduce((s,p)=>s+bestIn(p,['PH','BH']),0)
+    + pat.D.reduce((s,p)=>s+bestIn(p,['M','R','C']),0);
 }
 
 // att: 出席者 [{id,name,T,PH,BH,M,R,C,pin}] / 返り値: 解析一式
 function analyze(att, opt={}){
-  const capPat = opt.capPat ?? 300;      // 表示用パターン上限
-  const capIdeal = opt.capIdeal ?? 20000; // ガチャ用理想プール上限
-  const budget = opt.budget ?? 600000;   // 展開反復の安全上限
-  const res={ total:0, idealTotal:0, patterns:[], idealPool:[], reasons:[], capped:false };
+  const capPat = opt.capPat ?? 400;
+  const capIdeal = opt.capIdeal ?? 20000;
+  const budget = opt.budget ?? 600000;
+  const res={ total:0, idealTotal:0, cleanTotal:0, patterns:[], idealPool:[], cleanPool:[], reasons:[], capped:false };
 
   const pinned={T:[],H:[],D:[]};
   for(const p of att){
     if(!p.pin) continue;
-    if(!p[p.pin]){ res.reasons.push(`${p.name}を「${SUBLABEL[p.pin]}」にピンしているが、そのロールができない設定`); return res; }
+    if(!can(p,p.pin)){ res.reasons.push(`${p.name}を「${SUBLABEL[p.pin]}」にピンしているが、そのロールができない設定`); return res; }
     pinned[pinCoarse(p.pin)].push(p);
   }
   const need={};
@@ -295,39 +318,46 @@ function analyze(att, opt={}){
         if(ideal){
           res.idealTotal++;
           pat.ideal=ideal;
+          pat.penalty=ideal.penalty;
+          if(ideal.penalty===0){
+            res.cleanTotal++;
+            if(res.cleanPool.length<capIdeal) res.cleanPool.push(pat);
+          }
           if(res.idealPool.length<capIdeal) res.idealPool.push(pat);
+        } else {
+          pat.penalty=estPenalty(pat);
         }
         if(res.patterns.length<capPat) res.patterns.push(pat);
-        else if(ideal && !res.patterns.some(x=>x.ideal) ) res.patterns[capPat-1]=pat;
       }
     }
   }
   if(res.total===0){
-    const cnt=f=>att.filter(p=>f(p)&&true).length;
     const cc={T:att.filter(p=>coarse(p).T).length, H:att.filter(p=>coarse(p).H).length, D:att.filter(p=>coarse(p).D).length};
     if(cc.T<2) res.reasons.push(`タンクができる出席者が${cc.T}人（2人必要）`);
     if(cc.H<2) res.reasons.push(`ヒーラーができる出席者が${cc.H}人（2人必要）`);
     if(cc.D<4) res.reasons.push(`DPSができる出席者が${cc.D}人（4人必要）`);
     if(!res.reasons.length) res.reasons.push('ロールの組み合わせが噛み合わない（誰かのロールを増やすかピンを見直す）');
   } else if(res.idealTotal===0){
-    const seatCnt={PH:att.filter(p=>p.PH).length, BH:att.filter(p=>p.BH).length,
-                   M:att.filter(p=>p.M).length, R:att.filter(p=>p.R).length, C:att.filter(p=>p.C).length};
+    const sc={};
+    for(const r of ['PH','BH','M','R','C']) sc[r]=att.filter(p=>can(p,r)).length;
     const lack=[];
-    if(seatCnt.PH<1) lack.push('ピュア0人');
-    if(seatCnt.BH<1) lack.push('バリア0人');
-    if(seatCnt.M<2) lack.push(`近接${seatCnt.M}人（2人必要）`);
-    if(seatCnt.R<1) lack.push('レンジ0人');
-    if(seatCnt.C<1) lack.push('キャス0人');
+    if(sc.PH<1) lack.push('ピュア0人');
+    if(sc.BH<1) lack.push('バリア0人');
+    if(sc.M<2) lack.push(`近接${sc.M}人（2人必要）`);
+    if(sc.R<1) lack.push('レンジ0人');
+    if(sc.C<1) lack.push('キャス0人');
     res.idealLack = lack.length ? lack.join('・') : '席の取り合いで理想配置が作れない';
   }
+  // 表示用: 理想＞ペナルティ小 で並べ替え
+  res.patterns.sort((a,b)=>(b.ideal?1:0)-(a.ideal?1:0) || a.penalty-b.penalty);
   return res;
 }
 function build(att,pinned,Ts,Hs,Ds){
   const T=[...pinned.T,...Ts], H=[...pinned.H,...Hs], D=[...pinned.D,...Ds];
   const used=new Set([...T,...H,...D].map(p=>p.id));
-  return {T,H,D,bench:att.filter(p=>!used.has(p.id)), ideal:null};
+  return {T,H,D,bench:att.filter(p=>!used.has(p.id)), ideal:null, penalty:0};
 }
-// 全体プール（理想に限らない）から一様に1つ（閉形式スキップ・ガチャのフォールバック用）
+// 全体プールから一様にidx番目（ガチャのフォールバック用）
 function pickAt(att, idx){
   const pinned={T:[],H:[],D:[]};
   for(const p of att) if(p.pin) pinned[pinCoarse(p.pin)].push(p);
@@ -341,16 +371,21 @@ function pickAt(att, idx){
       const hset=new Set(Hs.map(p=>p.id));
       const dPool=fD.filter(p=>!tset.has(p.id)&&!hset.has(p.id));
       const ways=C2(dPool.length,need.D);
-      if(idx<ways){ const pat=build(att,pinned,Ts,Hs,unrankCombo(dPool,need.D,idx)); pat.ideal=checkIdeal(pat); return pat; }
+      if(idx<ways){
+        const pat=build(att,pinned,Ts,Hs,unrankCombo(dPool,need.D,idx));
+        pat.ideal=checkIdeal(pat);
+        pat.penalty=pat.ideal?pat.ideal.penalty:estPenalty(pat);
+        return pat;
+      }
       idx-=ways;
     }
   }
   return null;
 }
-// 粗い総数だけ（capped時の正確な総数・必須メンバー判定用）
+// 粗い総数のみ（必須メンバー判定・capped時の正確な総数用）
 function countTotal(att){
   const pinned={T:[],H:[],D:[]};
-  for(const p of att){ if(p.pin){ if(!p[p.pin]) return 0; pinned[pinCoarse(p.pin)].push(p); } }
+  for(const p of att){ if(p.pin){ if(!can(p,p.pin)) return 0; pinned[pinCoarse(p.pin)].push(p); } }
   const need={T:NEED.T-pinned.T.length, H:NEED.H-pinned.H.length, D:NEED.D-pinned.D.length};
   if(need.T<0||need.H<0||need.D<0||att.length<8) return 0;
   const free=att.filter(p=>!p.pin);
@@ -377,11 +412,11 @@ function load(){
   try{
     const j=JSON.parse(localStorage.getItem(LS));
     if(j&&Array.isArray(j.members)){
-      // v1(T/H/D)→v2(6分類)の移行
       for(const m of j.members){
-        if(m.H!==undefined && m.PH===undefined){ m.PH=!!m.H; m.BH=!!m.H; delete m.H; }
-        if(m.D!==undefined && m.M===undefined){ m.M=!!m.D; m.R=!!m.D; m.C=!!m.D; delete m.D; }
-        for(const r of SUB) m[r]=!!m[r];
+        // v1(T/H/D)→v2、v2(bool)→v3(0/1/2) の移行
+        if(m.H!==undefined && m.PH===undefined){ m.PH=m.H?1:0; m.BH=m.H?1:0; delete m.H; }
+        if(m.D!==undefined && m.M===undefined){ m.M=m.D?1:0; m.R=m.D?1:0; m.C=m.D?1:0; delete m.D; }
+        for(const r of SUB) m[r] = m[r]===true?1 : (m[r]|0);
         if(m.pin && !SUB.includes(m.pin)) m.pin = m.pin==='T' ? 'T' : null;
       }
       return j;
@@ -393,16 +428,18 @@ function save(){ localStorage.setItem(LS, JSON.stringify(S)); }
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const chipClass=(v,r)=> v===1 ? 'chip on-'+r : v===2 ? 'chip sub-'+r : 'chip off';
+const chipLabel=(v,r)=> SUBLABEL[r] + (v===2 ? '△' : '');
 
-/* 追加フォームのロールチップ */
-const addSel={T:false,PH:false,BH:false,M:true,R:false,C:false};
+/* 追加フォームのロールチップ（同じく3状態） */
+const addSel={T:0,PH:0,BH:0,M:1,R:0,C:0};
 (function(){
   const box=$('addChips');
   for(const r of SUB){
     const el=document.createElement('span');
-    el.textContent=SUBLABEL[r];
-    el.onclick=()=>{ addSel[r]=!addSel[r]; el.className='chip '+(addSel[r]?'on-'+r:'off'); };
-    el.className='chip '+(addSel[r]?'on-'+r:'off');
+    const paint=()=>{ el.className=chipClass(addSel[r],r); el.textContent=chipLabel(addSel[r],r); };
+    el.onclick=()=>{ addSel[r]=(addSel[r]+1)%3; paint(); };
+    paint();
     box.appendChild(el);
   }
 })();
@@ -411,7 +448,7 @@ function addMember(guest){
   const name=$('addName').value.trim();
   if(!name){ $('addName').focus(); return; }
   if(S.members.some(m=>m.name===name)){ alert('同じ名前がいます'); return; }
-  if(!SUB.some(r=>addSel[r])){ alert('できるロールを1つ以上選んでください'); return; }
+  if(!SUB.some(r=>addSel[r]>=1)){ alert('できるロールを1つ以上選んでください'); return; }
   const m={id:uid(),name,guest:!!guest,active:true,pin:null};
   for(const r of SUB) m[r]=addSel[r];
   S.members.push(m);
@@ -431,10 +468,10 @@ function renderMembers(){
       `<button class="att ${m.active?'yes':'no'}" data-a="${m.id}">${m.active?'今日':'休み'}</button>`+
       `<span class="name">${esc(m.name)}${m.guest?'<span class="badge">スケット</span>':''}</span>`+
       `<div class="ctrl">`+
-        SUB.map(r=>`<span class="chip ${m[r]?'on-'+r:'off'}" data-r="${r}" data-id="${m.id}">${SUBLABEL[r]}</span>`).join('')+
+        SUB.map(r=>`<span class="${chipClass(m[r],r)}" data-r="${r}" data-id="${m.id}">${chipLabel(m[r],r)}</span>`).join('')+
         `<select class="pin ${m.pin?'set':''}" data-p="${m.id}">
            <option value="">ピンなし</option>
-           ${SUB.map(r=>`<option value="${r}" ${m.pin===r?'selected':''} ${m[r]?'':'disabled'}>${SUBLABEL[r]}固定</option>`).join('')}
+           ${SUB.map(r=>`<option value="${r}" ${m.pin===r?'selected':''} ${m[r]>=1?'':'disabled'}>${SUBLABEL[r]}固定</option>`).join('')}
          </select>`+
         `<button class="ghost" data-x="${m.id}">削除</button>`+
       `</div>`;
@@ -444,7 +481,7 @@ function renderMembers(){
   box.onclick=e=>{
     const t=e.target;
     if(t.dataset.a){ const m=byId(t.dataset.a); m.active=!m.active; if(!m.active) m.pin=null; save(); render(); }
-    if(t.dataset.r){ const m=byId(t.dataset.id); m[t.dataset.r]=!m[t.dataset.r]; if(m.pin&&!m[m.pin]) m.pin=null; save(); render(); }
+    if(t.dataset.r){ const m=byId(t.dataset.id); m[t.dataset.r]=((m[t.dataset.r]|0)+1)%3; if(m.pin&&m[m.pin]<1) m.pin=null; save(); render(); }
     if(t.dataset.x){ const m=byId(t.dataset.x); if(confirm(`${m.name} を名簿から削除する？`)){ S.members=S.members.filter(x=>x.id!==t.dataset.x); save(); render(); } }
   };
   box.onchange=e=>{ const t=e.target; if(t.dataset.p){ byId(t.dataset.p).pin=t.value||null; save(); render(); } };
@@ -453,10 +490,10 @@ function renderMembers(){
 let last=null;
 function renderAnalysis(){
   const att=S.members.filter(m=>m.active);
-  const c=f=>att.filter(f).length;
+  const c=r=>att.filter(p=>p[r]>=1).length;
   const st=(l,n)=>`<span class="st">${l} <b>${n}</b></span>`;
   $('stats').innerHTML=att.length
-    ? [st('出席',att.length+'人'),st('T',c(p=>p.T)),st('ピュア',c(p=>p.PH)),st('バリア',c(p=>p.BH)),st('近接',c(p=>p.M)),st('レンジ',c(p=>p.R)),st('キャス',c(p=>p.C))]
+    ? [st('出席',att.length+'人'),st('T',c('T')),st('ピュア',c('PH')),st('バリア',c('BH')),st('近接',c('M')),st('レンジ',c('R')),st('キャス',c('C'))]
         .concat(att.length>8?[st('待機',(att.length-8)+'人/回')]:[]).join(' ／ ')
     : 'メンバーを追加して「今日」をオンにしてください';
   const r=analyze(att);
@@ -465,7 +502,10 @@ function renderAnalysis(){
   const v=$('verdict');
   if(!att.length){ v.innerHTML=''; $('essBox').innerHTML=''; renderPatterns(); return; }
   if(r.total>0 && r.idealTotal>0){
-    v.innerHTML=`<div class="verdict ok">✨ 理想形が組めます — 理想 ${r.idealTotal.toLocaleString()}${r.capped?'+':''} ／ 全 ${r.total.toLocaleString()} パターン</div>`;
+    const cleanTxt = r.cleanTotal>0
+      ? `△なし ${r.cleanTotal.toLocaleString()} ／ 理想 ${r.idealTotal.toLocaleString()} ／ 全 ${r.total.toLocaleString()} パターン`
+      : `理想 ${r.idealTotal.toLocaleString()} ／ 全 ${r.total.toLocaleString()} パターン（<b>誰かに△ロールを頼む必要あり</b>）`;
+    v.innerHTML=`<div class="verdict ok">✨ 理想形が組めます — ${cleanTxt}${r.capped?' *':''}</div>`;
   } else if(r.total>0){
     v.innerHTML=`<div class="verdict mix">組めますが理想形にはなりません（ごっちゃ ${r.total.toLocaleString()} パターン）<small>足りない席: ${esc(r.idealLack||'')}</small></div>`;
   } else {
@@ -476,11 +516,24 @@ function renderAnalysis(){
   $('essBox').innerHTML=ess.length?`<div class="ess">⭐ この人が休むと組めなくなる: ${ess.map(p=>esc(p.name)).join('・')}</div>`:'';
   renderPatterns();
 }
+function warnNames(p){
+  if(p.ideal){
+    const w=[];
+    for(const t of p.T) if(pen(t,'T')) w.push(`${t.name}(T)`);
+    if(pen(p.ideal.heal.PH,'PH')) w.push(`${p.ideal.heal.PH.name}(ピュア)`);
+    if(pen(p.ideal.heal.BH,'BH')) w.push(`${p.ideal.heal.BH.name}(バリア)`);
+    for(const m of p.ideal.dps.M) if(pen(m,'M')) w.push(`${m.name}(近接)`);
+    if(pen(p.ideal.dps.R,'R')) w.push(`${p.ideal.dps.R.name}(レンジ)`);
+    if(pen(p.ideal.dps.C,'C')) w.push(`${p.ideal.dps.C.name}(キャス)`);
+    return w;
+  }
+  return p.penalty>0 ? ['△含み'] : [];
+}
 function renderPatterns(){
   const r=last&&last.r;
   const onlyIdeal=$('tglListIdeal').checked;
   if(!r||!r.total){ $('pcount').textContent=''; $('plist').innerHTML='<div class="p">（パターンなし）</div>'; return; }
-  const src=onlyIdeal? r.idealPool : r.patterns;
+  const src=onlyIdeal? r.idealPool.slice().sort((a,b)=>a.penalty-b.penalty) : r.patterns;
   const totalShown=onlyIdeal? r.idealTotal : r.total;
   const list=src.slice(0,300);
   $('pcount').textContent=`${totalShown.toLocaleString()}${r.capped?'+':''}件${totalShown>list.length?`（先頭${list.length}件を表示）`:''}`;
@@ -489,10 +542,11 @@ function renderPatterns(){
     const s=p.ideal;
     return ` <span class="bn">［ピュア:${esc(s.heal.PH.name)} バリア:${esc(s.heal.BH.name)}／近接:${s.dps.M.map(x=>esc(x.name)).join('・')} レンジ:${esc(s.dps.R.name)} キャス:${esc(s.dps.C.name)}］</span>`;
   };
-  $('plist').innerHTML=list.map((p,i)=>
-    `<div class="p">#${i+1}${p.ideal?' ✨':''}　<b class="t">T</b> ${p.T.map(x=>esc(x.name)).join('・')}　<b class="h">H</b> ${p.H.map(x=>esc(x.name)).join('・')}　<b class="d">D</b> ${p.D.map(x=>esc(x.name)).join('・')}`+
-    (p.bench.length?`　<span class="bn">待機: ${p.bench.map(x=>esc(x.name)).join('・')}</span>`:'')+seatTxt(p)+`</div>`).join('')
-    || '<div class="p">（該当なし）</div>';
+  $('plist').innerHTML=list.map((p,i)=>{
+    const w=warnNames(p);
+    return `<div class="p">#${i+1}${p.ideal?' ✨':''}${w.length?` <span class="wr">⚠${w.map(esc).join('・')}</span>`:''}　<b class="t">T</b> ${p.T.map(x=>esc(x.name)).join('・')}　<b class="h">H</b> ${p.H.map(x=>esc(x.name)).join('・')}　<b class="d">D</b> ${p.D.map(x=>esc(x.name)).join('・')}`+
+    (p.bench.length?`　<span class="bn">待機: ${p.bench.map(x=>esc(x.name)).join('・')}</span>`:'')+seatTxt(p)+`</div>`;
+  }).join('') || '<div class="p">（該当なし）</div>';
 }
 $('tglListIdeal').onchange=renderPatterns;
 
@@ -501,9 +555,14 @@ $('btnGacha').onclick=()=>{
   const {r,att}=last;
   const preferIdeal=$('tglIdeal').checked;
   let pat=null, note='';
-  if(preferIdeal && r.idealPool.length){
-    pat=r.idealPool[Math.floor(Math.random()*r.idealPool.length)];
-    note=`理想形 ${r.idealTotal.toLocaleString()}通りから1つ`;
+  if(preferIdeal && r.cleanPool.length){
+    pat=r.cleanPool[Math.floor(Math.random()*r.cleanPool.length)];
+    note=`△なし理想形 ${r.cleanTotal.toLocaleString()}通りから1つ`;
+  } else if(preferIdeal && r.idealPool.length){
+    const minPen=Math.min(...r.idealPool.map(p=>p.penalty));
+    const pool=r.idealPool.filter(p=>p.penalty===minPen);
+    pat=pool[Math.floor(Math.random()*pool.length)];
+    note=`理想形（△${minPen}人・最少）${pool.length.toLocaleString()}通りから1つ`;
   } else {
     pat=pickAt(att, Math.floor(Math.random()*r.total));
     note=`全 ${r.total.toLocaleString()}通りから1つ${preferIdeal?'（理想形が無いのでごっちゃ）':''}`;
@@ -512,25 +571,26 @@ $('btnGacha').onclick=()=>{
   $('gachaNote').textContent=note;
   const box=$('proposal'); box.style.display='';
   const pinnedIds=new Set(att.filter(x=>x.pin).map(x=>x.id));
-  const chip=(x,seat)=>`<span class="pchip ${pinnedIds.has(x.id)?'fixed':''}">${seat?`<small>${seat}</small>`:''}${esc(x.name)}</span>`;
+  const chip=(x,seat,warn)=>`<span class="pchip ${pinnedIds.has(x.id)?'fixed':''} ${warn?'warn':''}">${seat?`<small>${seat}</small>`:''}${esc(x.name)}${warn?'△':''}</span>`;
   let hHtml, dHtml;
   if(pat.ideal){
-    hHtml=chip(pat.ideal.heal.PH,'ピュア')+chip(pat.ideal.heal.BH,'バリア');
-    dHtml=pat.ideal.dps.M.map(x=>chip(x,'近接')).join('')+chip(pat.ideal.dps.R,'レンジ')+chip(pat.ideal.dps.C,'キャス');
+    const s=pat.ideal;
+    hHtml=chip(s.heal.PH,'ピュア',pen(s.heal.PH,'PH'))+chip(s.heal.BH,'バリア',pen(s.heal.BH,'BH'));
+    dHtml=s.dps.M.map(x=>chip(x,'近接',pen(x,'M'))).join('')+chip(s.dps.R,'レンジ',pen(s.dps.R,'R'))+chip(s.dps.C,'キャス',pen(s.dps.C,'C'));
   } else {
     hHtml=pat.H.map(x=>chip(x)).join('');
     dHtml=pat.D.map(x=>chip(x)).join('');
   }
   box.innerHTML=
-    `<div class="rolebox T"><span class="rl">TANK</span><div class="pchips">${pat.T.map(x=>chip(x)).join('')}</div></div>`+
+    `<div class="rolebox T"><span class="rl">TANK</span><div class="pchips">${pat.T.map(x=>chip(x,null,pen(x,'T'))).join('')}</div></div>`+
     `<div class="rolebox H"><span class="rl">HEALER${pat.ideal?'':'（ごっちゃ）'}</span><div class="pchips">${hHtml}</div></div>`+
     `<div class="rolebox D full"><span class="rl">DPS${pat.ideal?'':'（ごっちゃ）'}</span><div class="pchips">${dHtml}</div></div>`+
     (pat.bench.length?`<div class="rolebox B full"><span class="rl">待機</span><div class="pchips">${pat.bench.map(x=>chip(x)).join('')}</div></div>`:'');
 };
 
-/* 共有リンク */
+/* 共有リンク（△は '!'プレフィックス。旧形式もそのまま読める） */
 $('btnShare').onclick=async()=>{
-  const data=S.members.map(m=>[m.name, SUB.filter(r=>m[r]).join(''), m.guest?1:0, m.pin||'']);
+  const data=S.members.map(m=>[m.name, SUB.filter(r=>m[r]>=1).map(r=>(m[r]===2?'!':'')+r).join(''), m.guest?1:0, m.pin||'']);
   const hash='#s='+btoa(unescape(encodeURIComponent(JSON.stringify(data))));
   const url=location.origin+location.pathname+hash;
   try{ await navigator.clipboard.writeText(url); $('btnShare').textContent='コピーしました！'; }
@@ -546,12 +606,13 @@ $('btnShare').onclick=async()=>{
     if(S.members.length && !confirm(`共有された名簿（${data.length}人）を読み込む？（今の名簿は上書きされます）`)){ history.replaceState(null,'',location.pathname); return; }
     S.members=data.map(([name,roles,guest,pin])=>{
       const mm={id:uid(), name:String(name).slice(0,20), guest:!!guest, active:true, pin:SUB.includes(pin)?pin:null};
-      // rolesは 'T','PH','BH','M','R','C' の連結。二文字トークン優先で解釈
-      for(const r of SUB) mm[r]=false;
-      let s=String(roles);
-      for(const tok of ['PH','BH']){ if(s.includes(tok)){ mm[tok]=true; s=s.replaceAll(tok,''); } }
-      for(const ch of s) if(['T','M','R','C'].includes(ch)) mm[ch]=true;
-      if(mm.pin && !mm[mm.pin]) mm.pin=null;
+      for(const r of SUB) mm[r]=0;
+      const toks=String(roles).match(/!?(?:PH|BH|[TMRC])/g)||[];
+      for(const tok of toks){
+        const sub=tok.startsWith('!');
+        mm[sub?tok.slice(1):tok]=sub?2:1;
+      }
+      if(mm.pin && mm[mm.pin]<1) mm.pin=null;
       return mm;
     });
     save();
