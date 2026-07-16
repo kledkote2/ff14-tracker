@@ -150,6 +150,11 @@ label.tgl input{width:18px;height:18px;accent-color:var(--verm)}
 
   <div class="card">
     <h2>メンバー<span class="cnt" id="mcount"></span></h2>
+    <div class="ess" id="cloudBanner" style="display:none;margin:0 0 14px">
+      ☁ みんなの名簿が更新されています（<span id="cloudDate"></span>）
+      <button class="sky" id="btnCloudPull" style="margin-left:8px">取り込む</button>
+      <button class="ghost" id="btnCloudSkip">今回は無視</button>
+    </div>
     <div class="addrow">
       <input type="text" id="addName" placeholder="名前（例: こてつ）" maxlength="20">
       <button class="sky" id="btnAdd">＋追加</button>
@@ -185,14 +190,18 @@ label.tgl input{width:18px;height:18px;accent-color:var(--verm)}
   </div>
 
   <div class="card">
-    <h2>共有</h2>
+    <h2>名簿の保存・共有</h2>
     <div class="toolbar" style="margin-top:0">
+      <button class="primary" id="btnCloudSave" style="font-size:15px;padding:10px 20px">☁ みんなの名簿に保存</button>
+      <span class="note" id="cloudNote">ロール（○/△/×）・スケット・ピンの変更をクラウドに保存。他の人はページを開くと「名簿が更新されています」から取り込めます（出席の今日/休みは各自ローカル）</span>
+    </div>
+    <div class="toolbar">
       <button class="sky" id="btnShare">共有リンクをコピー</button>
-      <span class="note">名簿ごとURLに乗ります。Discordに貼れば同じ名簿で開けます（開いた側で取り込み確認あり）</span>
+      <span class="note">こっちはURL直貼り方式（クラウドを介さないスナップショット）</span>
     </div>
   </div>
 
-  <p class="footer">party-sim v3 — ローカル保存（この端末のブラウザ内）／ FF14 tracker 別館</p>
+  <p class="footer">party-sim v4 — 名簿はクラウド共有（出席は端末ローカル）／ FF14 tracker 別館</p>
 </div>
 
 <script>
@@ -418,23 +427,26 @@ const okWithout=(att,p)=>countTotal(att.filter(x=>x.id!==p.id))>0;
 
 /* ================= UI ================= */
 const LS='partySim1';
+const WORKER='https://ff14-tracker-sync.kote2-89f.workers.dev';
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-// 初期名簿（その翼を授けて・2026-07-16時点の自己紹介から。△=練度低め申告）
-// 初回アクセス時のみ流し込み。以後は各端末のローカル保存が正。
+// 初期名簿（フォールバック・その翼を授けて2026-07-16時点）。
+// 正本はクラウド（Worker KV /party/roster）＝起動時に取得して追従。
 const DEFAULT_ROSTER=[
   ['もると','PHMC'],['さくぴ','T!PHBH!MR!C'],['こてつ','TBHC'],['くりあ','!TMRC'],
   ['のあ','TPHBHMR!C'],['きの','BHMC'],['ぼせつ','!TPHBHMRC'],['るん','TPH!BH'],
   ['ちゃる','TPHBHC'],['まあや','TR'],
 ];
-function fromRoles(name,roles,guest){
-  const mm={id:uid(),name,guest:!!guest,active:true,pin:null};
+function fromRoles(name,roles,guest,pin){
+  const mm={id:uid(),name:String(name).slice(0,20),guest:!!guest,active:true,pin:SUB.includes(pin)?pin:null};
   for(const r of SUB) mm[r]=0;
   for(const tok of (String(roles).match(/!?(?:PH|BH|[TMRC])/g)||[])){
     const sub=tok.startsWith('!');
     mm[sub?tok.slice(1):tok]=sub?2:1;
   }
+  if(mm.pin && mm[mm.pin]<1) mm.pin=null;
   return mm;
 }
+const encodeMembers=()=>S.members.map(m=>[m.name, SUB.filter(r=>m[r]>=1).map(r=>(m[r]===2?'!':'')+r).join(''), m.guest?1:0, m.pin||'']);
 let S=load();
 function load(){
   try{
@@ -450,7 +462,7 @@ function load(){
       return j;
     }
   }catch(e){}
-  return {members: DEFAULT_ROSTER.map(([n,r])=>fromRoles(n,r,false))};
+  return {members: DEFAULT_ROSTER.map(([n,r])=>fromRoles(n,r,false)), seeded:true, cloudV:0};
 }
 function save(){ localStorage.setItem(LS, JSON.stringify(S)); }
 const $=id=>document.getElementById(id);
@@ -619,8 +631,7 @@ $('btnGacha').onclick=()=>{
 
 /* 共有リンク（△は '!'プレフィックス。旧形式もそのまま読める） */
 $('btnShare').onclick=async()=>{
-  const data=S.members.map(m=>[m.name, SUB.filter(r=>m[r]>=1).map(r=>(m[r]===2?'!':'')+r).join(''), m.guest?1:0, m.pin||'']);
-  const hash='#s='+btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+  const hash='#s='+btoa(unescape(encodeURIComponent(JSON.stringify(encodeMembers()))));
   const url=location.origin+location.pathname+hash;
   try{ await navigator.clipboard.writeText(url); $('btnShare').textContent='コピーしました！'; }
   catch(e){ prompt('このURLをコピー:',url); }
@@ -632,25 +643,59 @@ $('btnShare').onclick=async()=>{
   try{
     const data=JSON.parse(decodeURIComponent(escape(atob(m[1]))));
     if(!Array.isArray(data)||!data.length) return;
-    if(S.members.length && !confirm(`共有された名簿（${data.length}人）を読み込む？（今の名簿は上書きされます）`)){ history.replaceState(null,'',location.pathname); return; }
-    S.members=data.map(([name,roles,guest,pin])=>{
-      const mm={id:uid(), name:String(name).slice(0,20), guest:!!guest, active:true, pin:SUB.includes(pin)?pin:null};
-      for(const r of SUB) mm[r]=0;
-      const toks=String(roles).match(/!?(?:PH|BH|[TMRC])/g)||[];
-      for(const tok of toks){
-        const sub=tok.startsWith('!');
-        mm[sub?tok.slice(1):tok]=sub?2:1;
-      }
-      if(mm.pin && mm[mm.pin]<1) mm.pin=null;
-      return mm;
-    });
+    if(S.members.length && !S.seeded && !confirm(`共有された名簿（${data.length}人）を読み込む？（今の名簿は上書きされます）`)){ history.replaceState(null,'',location.pathname); return; }
+    S.members=data.map(([name,roles,guest,pin])=>fromRoles(name,roles,guest,pin));
+    S.seeded=false;
     save();
   }catch(e){ console.warn('share import failed',e); }
   history.replaceState(null,'',location.pathname);
 })();
 
+/* ===== 名簿クラウド（Worker KV /party/roster）=====
+   正本=クラウド。ローカルは作業コピーで、「☁みんなの名簿に保存」で配布。
+   出席(今日/休み)は同期しない＝各端末の当日事情。 */
+let cloudLatest=null;
+function applyCloud(){
+  if(!cloudLatest) return;
+  S.members=cloudLatest.members.map(([n,r,g,p])=>fromRoles(n,r,g,p));
+  S.cloudV=cloudLatest.v; S.seeded=false;
+  save(); render();
+  $('cloudBanner').style.display='none';
+}
+async function fetchCloud(){
+  try{
+    const res=await fetch(WORKER+'/party/roster',{cache:'no-store'});
+    const j=await res.json();
+    if(!j.ok || !j.v || !Array.isArray(j.members) || !j.members.length) return;
+    cloudLatest=j;
+    if(S.seeded){ applyCloud(); return; }             // 埋め込み初期状態→無条件でクラウドに追従
+    if(j.v>(S.cloudV||0)){                             // 誰かが更新してた→バナーで案内
+      const d=new Date(j.v);
+      $('cloudDate').textContent=`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+      $('cloudBanner').style.display='';
+    }
+  }catch(e){ console.warn('cloud fetch failed', e); }
+}
+$('btnCloudPull').onclick=()=>{ if(confirm('クラウドの名簿に置き換えます（ロール/ピンの手元の未保存変更は消えます・出席は全員「今日」に戻ります）')) applyCloud(); };
+$('btnCloudSkip').onclick=()=>{ if(cloudLatest){ S.cloudV=cloudLatest.v; save(); } $('cloudBanner').style.display='none'; };
+$('btnCloudSave').onclick=async()=>{
+  if(!S.members.length){ alert('名簿が空です'); return; }
+  if(!confirm('今の名簿（ロール○/△/×・スケット・ピン）を「みんなの名簿」として保存する？')) return;
+  const btn=$('btnCloudSave');
+  btn.disabled=true;
+  try{
+    const res=await fetch(WORKER+'/party/roster',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({members:encodeMembers()})});
+    const j=await res.json();
+    if(j.ok){ S.cloudV=j.v; S.seeded=false; save(); btn.textContent='☁ 保存しました！'; }
+    else{ alert('保存に失敗: '+(j.error||res.status)); }
+  }catch(e){ alert('通信エラー（オフライン？）'); }
+  btn.disabled=false;
+  setTimeout(()=>btn.textContent='☁ みんなの名簿に保存',2000);
+};
+
 function render(){ renderMembers(); renderAnalysis(); }
 render();
+fetchCloud();
 </script>
 </body>
 </html>
