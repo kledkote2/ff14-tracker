@@ -196,6 +196,10 @@ label.tgl input{width:18px;height:18px;accent-color:var(--verm)}
       <span class="note" id="cloudNote">ロール（○/△/×）・スケット・ピンの変更をクラウドに保存。他の人はページを開くと「名簿が更新されています」から取り込めます（出席の今日/休みは各自ローカル）</span>
     </div>
     <div class="toolbar">
+      <button id="btnCloudLoad">☁ クラウドから取り込む</button>
+      <span class="note">いつでも最新のみんなの名簿に置き換え（バナーを「無視」した後のやり直しもこれ）</span>
+    </div>
+    <div class="toolbar">
       <button class="sky" id="btnShare">共有リンクをコピー</button>
       <span class="note">こっちはURL直貼り方式（クラウドを介さないスナップショット）</span>
     </div>
@@ -676,7 +680,21 @@ async function fetchCloud(){
     }
   }catch(e){ console.warn('cloud fetch failed', e); }
 }
+const fmtV=v=>{ const d=new Date(v); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
 $('btnCloudPull').onclick=()=>{ if(confirm('クラウドの名簿に置き換えます（ロール/ピンの手元の未保存変更は消えます・出席は全員「今日」に戻ります）')) applyCloud(); };
+$('btnCloudLoad').onclick=async()=>{
+  const btn=$('btnCloudLoad'); btn.disabled=true;
+  try{
+    const res=await fetch(WORKER+'/party/roster',{cache:'no-store'});
+    const j=await res.json();
+    if(!j.ok || !j.v || !Array.isArray(j.members) || !j.members.length){ alert('クラウドに名簿がまだありません'); }
+    else{
+      cloudLatest=j;
+      if(confirm(`クラウドの名簿（${j.members.length}人・${fmtV(j.v)}保存）に置き換える？\n（手元の未保存変更は消えます・出席は全員「今日」に戻ります）`)) applyCloud();
+    }
+  }catch(e){ alert('通信エラー（オフライン？）'); }
+  btn.disabled=false;
+};
 $('btnCloudSkip').onclick=()=>{ if(cloudLatest){ S.cloudV=cloudLatest.v; save(); } $('cloudBanner').style.display='none'; };
 $('btnCloudSave').onclick=async()=>{
   if(!S.members.length){ alert('名簿が空です'); return; }
