@@ -778,8 +778,8 @@ const GTIERS = [
   {n:'アラ',c:'#4FA85C'},{n:'記憶RE',c:'#F5A623'},{n:'零式',c:'#F04F30'},{n:'PW',c:'#FFFFFF'}
 ];
 const NO_GEAR = ['j_bst','j_blu']; // 魔獣使い・青魔＝制限ジョブ、装備管理せずレベルのみ
-// 段階→ILv（パッチ7.5装備更新ルートより。零式=防具790/武器795。アラ790は記憶RE同値の仮置き＝ゲーム内表示とズレたらここを直す）
-const GTIER_IL=[null,770,780,780,790,790,790,795];
+// 段階→ILv（パッチ7.5装備更新ルートより。零式=防具790/武器795。アラ=780はこてつ実測確定 2026-07-19）
+const GTIER_IL=[null,770,780,780,780,790,790,795];
 function tierIL(t,isW){ if(t===6&&isW) return 795; return GTIER_IL[t]||null; }
 // 平均IL＝ゲーム内式: 武器2倍＋防具アクセ10部位を12で割り切り捨て（盾は武器同段階の近似）。「100未満」が混ざる間は未算出
 function avgIL(j){ let sum=0; for(const s of GSLOTS){ const t=S['gear_'+j.id+'_'+s.k]??0, il=tierIL(t,s.k==='wpn'); if(il==null) return null; sum+=s.k==='wpn'?il*2:il; } return Math.floor(sum/12); }
