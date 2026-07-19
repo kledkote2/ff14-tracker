@@ -64,6 +64,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 .gear-sel:hover{box-shadow:2px 2px 0 var(--ink);}
 .gear-lv{font-family:var(--mono);font-size:11px;color:var(--text3);margin-left:auto;padding-left:8px;flex-shrink:0;}
 .gear-lv.lv-max{color:var(--gold);}
+.gear-il{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text2);margin-left:6px;flex-shrink:0;}
+.gear-il.il-na{color:var(--text3);font-weight:400;}
 .exp-arrow{color:var(--text3);font-size:10px;width:11px;flex-shrink:0;}
 .gear-exp>td{background:var(--bg3);padding:9px 14px;border-bottom:2px solid var(--border);position:sticky;left:0;}
 .gear-exp-inner{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
@@ -775,6 +777,11 @@ const GTIERS = [
   {n:'アラ',c:'#4FA85C'},{n:'記憶RE',c:'#F5A623'},{n:'零式',c:'#F04F30'},{n:'PW',c:'#FFFFFF'}
 ];
 const NO_GEAR = ['j_bst','j_blu']; // 魔獣使い・青魔＝制限ジョブ、装備管理せずレベルのみ
+// 段階→ILv（パッチ7.5装備更新ルートより。零式=防具790/武器795。アラ790は記憶RE同値の仮置き＝ゲーム内表示とズレたらここを直す）
+const GTIER_IL=[null,770,780,780,790,790,790,795];
+function tierIL(t,isW){ if(t===6&&isW) return 795; return GTIER_IL[t]||null; }
+// 平均IL＝ゲーム内式: 武器2倍＋防具アクセ10部位を12で割り切り捨て（盾は武器同段階の近似）。「100未満」が混ざる間は未算出
+function avgIL(j){ let sum=0; for(const s of GSLOTS){ const t=S['gear_'+j.id+'_'+s.k]??0, il=tierIL(t,s.k==='wpn'); if(il==null) return null; sum+=s.k==='wpn'?il*2:il; } return Math.floor(sum/12); }
 // 防具ロール（兼用単位）＝FF14の装備カテゴリ。同ロール内は防具・アクセを共用できる（武器のみジョブ固有）
 const AROLE = {
   j_pld:'tank',   j_war:'tank',   j_drk:'tank',   j_gnb:'tank',
@@ -849,7 +856,9 @@ function renderJobs() {
       const lv=S['lv_'+j.id]??j.lv, rc=ROLE_COLOR[j.role], noG=NO_GEAR.includes(j.id);
       const icon=`<img src="${iconUrl(j.icon)}" width="22" height="22" style="border-radius:50%;object-fit:cover;flex-shrink:0" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="job-icon-fb" style="width:22px;height:22px;display:none;background:${rc}22;color:${rc};border-color:${rc}55">${j.abbr}</div>`;
       const arrow=noG?'':`<span class="exp-arrow">${EXP[j.id]?'▾':'▸'}</span>`;
-      const jobCell=`<td class="gear-job"${noG?'':` style="cursor:pointer" onclick="toggleJob('${j.id}')"`}><div class="job-icon-wrap">${arrow}${icon}<span class="gear-jn">${j.name}</span><span class="gear-lv ${lv>=100?'lv-max':''}">Lv${lv}</span></div></td>`;
+      const ail=noG?undefined:avgIL(j);
+      const ilSpan=noG?'':(ail==null?`<span class="gear-il il-na" title="「100未満」の部位があるため未算出">IL --</span>`:`<span class="gear-il" title="平均アイテムレベル（武器2倍・12部位換算）">IL ${ail}</span>`);
+      const jobCell=`<td class="gear-job"${noG?'':` style="cursor:pointer" onclick="toggleJob('${j.id}')"`}><div class="job-icon-wrap">${arrow}${icon}<span class="gear-jn">${j.name}</span><span class="gear-lv ${lv>=100?'lv-max':''}">Lv${lv}</span>${ilSpan}</div></td>`;
       let cells;
       if(noG){ cells=`<td colspan="${GSLOTS.length}" style="text-align:left;color:var(--text3);font-size:12px;padding-left:12px">装備管理外（レベルのみ）</td>`; }
       else {
