@@ -163,11 +163,11 @@ label.tgl input{width:18px;height:18px;accent-color:var(--verm)}
     <div class="addrow">
       <input type="text" id="addName" placeholder="名前（例: こてつ）" maxlength="20">
       <button class="sky" id="btnAdd">＋追加</button>
-      <button id="btnAddGuest">＋スケットで追加</button>
+      <button id="btnAddGuest">＋助っ人で追加</button>
     </div>
     <div class="chipgrid" id="addChips" style="margin-bottom:14px"></div>
     <div id="mlist"></div>
-    <p class="note">「今日」＝出席トグル／チップは<b>タップで3段階</b>: できる → <b>△できるが避けたい（練度低め申告）</b> → できない。△はガチャと理想判定でなるべく使わない席になります。ピン＝その人をその席に固定。スケットは名簿に残るので、来ない日は「今日」をオフ。<br><b>🔔笛あり</b>＝そのマウントを取得済み。<b>9人以上いて待機が出るとき、笛ありの人から先に待機へ回ります</b>（まだの人を優先して席に入れるため）。笛ありでも席に入れないわけではありません。</p>
+    <p class="note">「今日」＝出席トグル／チップは<b>タップで3段階</b>: できる → <b>△できるが避けたい（練度低め申告）</b> → できない。△はガチャと理想判定でなるべく使わない席になります。ピン＝その人をその席に固定。助っ人は名簿に残るので、来ない日は「今日」をオフ。<br><b>🔔笛あり</b>＝そのマウントを取得済み。<b>9人以上いて待機が出るとき、笛ありの人から先に待機へ回ります</b>（まだの人を優先して席に入れるため）。笛ありでも席に入れないわけではありません。</p>
   </div>
 
   <div class="card">
@@ -198,7 +198,7 @@ label.tgl input{width:18px;height:18px;accent-color:var(--verm)}
     <h2>名簿の保存・共有</h2>
     <div class="toolbar" style="margin-top:0">
       <button class="primary" id="btnCloudSave" style="font-size:15px;padding:10px 20px">☁ みんなの名簿に保存</button>
-      <span class="note" id="cloudNote">ロール（○/△/×）・🔔笛所持・スケット・ピンの変更をクラウドに保存。他の人はページを開くと「名簿が更新されています」から取り込めます（出席の今日/休みは各自ローカル）</span>
+      <span class="note" id="cloudNote">ロール（○/△/×）・🔔笛所持・助っ人・ピンの変更をクラウドに保存。他の人はページを開くと「名簿が更新されています」から取り込めます（出席の今日/休みは各自ローカル）</span>
     </div>
     <div class="toolbar">
       <button id="btnCloudLoad">☁ クラウドから取り込む</button>
@@ -520,7 +520,7 @@ function renderMembers(){
     const row=document.createElement('div'); row.className='mrow';
     row.innerHTML=
       `<button class="att ${m.active?'yes':'no'}" data-a="${m.id}">${m.active?'今日':'休み'}</button>`+
-      `<span class="name">${esc(m.name)}${m.guest?'<span class="badge">スケット</span>':''}</span>`+
+      `<span class="name">${esc(m.name)}${m.guest?'<span class="badge">助っ人</span>':''}</span>`+
       `<div class="ctrl">`+
         `<div class="chipgrid">`+
         SUB.map(r=>`<span class="${chipClass(m[r],r)}" data-r="${r}" data-id="${m.id}">${chipLabel(m[r],r)}</span>`).join('')+
@@ -534,7 +534,7 @@ function renderMembers(){
       `</div>`;
     box.appendChild(row);
   }
-  $('mcount').textContent=S.members.length?`${S.members.length}人（うちスケット${S.members.filter(m=>m.guest).length}）`:'';
+  $('mcount').textContent=S.members.length?`${S.members.length}人（うち助っ人${S.members.filter(m=>m.guest).length}）`:'';
   box.onclick=e=>{
     const t=e.target;
     if(t.dataset.a){ const m=byId(t.dataset.a); m.active=!m.active; if(!m.active) m.pin=null; save(); render(); }
@@ -723,7 +723,7 @@ $('btnCloudLoad').onclick=async()=>{
 $('btnCloudSkip').onclick=()=>{ if(cloudLatest){ S.cloudV=cloudLatest.v; save(); } $('cloudBanner').style.display='none'; };
 $('btnCloudSave').onclick=async()=>{
   if(!S.members.length){ alert('名簿が空です'); return; }
-  if(!confirm('今の名簿（ロール○/△/×・🔔笛所持・スケット・ピン）を「みんなの名簿」として保存する？')) return;
+  if(!confirm('今の名簿（ロール○/△/×・🔔笛所持・助っ人・ピン）を「みんなの名簿」として保存する？')) return;
   const btn=$('btnCloudSave');
   btn.disabled=true;
   try{
