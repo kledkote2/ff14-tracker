@@ -95,6 +95,11 @@ button.ghost:active{transform:none}
 .mrow .name{font-weight:700;font-size:15px;flex:1 1 90px;min-width:90px;overflow-wrap:anywhere}
 .badge{display:inline-block;border:2px solid var(--ink);border-radius:6px;background:var(--pink);
   color:var(--ink);font-size:10.5px;font-weight:800;padding:0 6px;margin-left:6px;vertical-align:2px}
+/* 笛（マウント）所持トグル: 済＝人数があふれた時に優先して待機へ回る */
+.mrow .got{height:32px;border-radius:9999px;border:2px solid var(--ink);font-weight:900;font-size:12px;
+  box-shadow:2px 2px 0 var(--ink);cursor:pointer;padding:0 10px;white-space:nowrap;font-family:inherit}
+.mrow .got.yes{background:var(--must);color:var(--ink)}
+.mrow .got.no{background:var(--paper2);color:var(--mute);box-shadow:none}
 select.pin{border:2px solid var(--ink);border-radius:9999px;padding:4px 8px;font-family:inherit;
   font-weight:700;font-size:12.5px;background:var(--paper)}
 select.pin.set{background:var(--apri)}
@@ -162,7 +167,7 @@ label.tgl input{width:18px;height:18px;accent-color:var(--verm)}
     </div>
     <div class="chipgrid" id="addChips" style="margin-bottom:14px"></div>
     <div id="mlist"></div>
-    <p class="note">「今日」＝出席トグル／チップは<b>タップで3段階</b>: できる → <b>△できるが避けたい（練度低め申告）</b> → できない。△はガチャと理想判定でなるべく使わない席になります。ピン＝その人をその席に固定。スケットは名簿に残るので、来ない日は「今日」をオフ。</p>
+    <p class="note">「今日」＝出席トグル／チップは<b>タップで3段階</b>: できる → <b>△できるが避けたい（練度低め申告）</b> → できない。△はガチャと理想判定でなるべく使わない席になります。ピン＝その人をその席に固定。スケットは名簿に残るので、来ない日は「今日」をオフ。<br><b>🔔笛あり</b>＝そのマウントを取得済み。<b>9人以上いて待機が出るとき、笛ありの人から先に待機へ回ります</b>（まだの人を優先して席に入れるため）。笛ありでも席に入れないわけではありません。</p>
   </div>
 
   <div class="card">
@@ -193,7 +198,7 @@ label.tgl input{width:18px;height:18px;accent-color:var(--verm)}
     <h2>名簿の保存・共有</h2>
     <div class="toolbar" style="margin-top:0">
       <button class="primary" id="btnCloudSave" style="font-size:15px;padding:10px 20px">☁ みんなの名簿に保存</button>
-      <span class="note" id="cloudNote">ロール（○/△/×）・スケット・ピンの変更をクラウドに保存。他の人はページを開くと「名簿が更新されています」から取り込めます（出席の今日/休みは各自ローカル）</span>
+      <span class="note" id="cloudNote">ロール（○/△/×）・🔔笛所持・スケット・ピンの変更をクラウドに保存。他の人はページを開くと「名簿が更新されています」から取り込めます（出席の今日/休みは各自ローカル）</span>
     </div>
     <div class="toolbar">
       <button id="btnCloudLoad">☁ クラウドから取り込む</button>
@@ -205,7 +210,7 @@ label.tgl input{width:18px;height:18px;accent-color:var(--verm)}
     </div>
   </div>
 
-  <p class="footer">party-sim v4 — 名簿はクラウド共有（出席は端末ローカル）／ FF14 tracker 別館</p>
+  <p class="footer">party-sim v5 — 名簿はクラウド共有（出席は端末ローカル）／笛所持で待機を優先配分／ FF14 tracker 別館</p>
 </div>
 
 <script>
@@ -372,14 +377,18 @@ function analyze(att, opt={}){
     if(sc.C<1) lack.push('キャス0人');
     res.idealLack = lack.length ? lack.join('・') : '席の取り合いで理想配置が作れない';
   }
-  // 表示用: 理想＞ペナルティ小 で並べ替え
-  res.patterns.sort((a,b)=>(b.ideal?1:0)-(a.ideal?1:0) || a.penalty-b.penalty);
+  // 表示用: 理想＞△ペナルティ小＞待機ペナルティ小（＝笛未所持を席に残す）で並べ替え
+  res.patterns.sort((a,b)=>(b.ideal?1:0)-(a.ideal?1:0) || a.penalty-b.penalty || a.benchPen-b.benchPen);
   return res;
 }
 function build(att,pinned,Ts,Hs,Ds){
   const T=[...pinned.T,...Ts], H=[...pinned.H,...Hs], D=[...pinned.D,...Ds];
   const used=new Set([...T,...H,...D].map(p=>p.id));
-  return {T,H,D,bench:att.filter(p=>!used.has(p.id)), ideal:null, penalty:0};
+  const bench=att.filter(p=>!used.has(p.id));
+  // 待機ペナルティ: 待機に回った人のうち「笛がまだ出ていない人」の数。
+  // 人数が余ったら笛所持者から先に休んでもらう、を数値で表したもの（0が理想）。
+  const benchPen=bench.reduce((s,p)=>s+(p.got?0:1),0);
+  return {T,H,D,bench, benchPen, ideal:null, penalty:0};
 }
 // 全体プールから一様にidx番目（ガチャのフォールバック用）
 function pickAt(att, idx){
@@ -440,8 +449,8 @@ const DEFAULT_ROSTER=[
   ['のあ','TPHBHMR!C'],['きの','BHMC'],['ぼせつ','!TPHBHMRC'],['るん','TPH!BH'],
   ['ちゃる','TPHBHC'],['まあや','TR'],
 ];
-function fromRoles(name,roles,guest,pin){
-  const mm={id:uid(),name:String(name).slice(0,20),guest:!!guest,active:true,pin:SUB.includes(pin)?pin:null};
+function fromRoles(name,roles,guest,pin,got){
+  const mm={id:uid(),name:String(name).slice(0,20),guest:!!guest,active:true,pin:SUB.includes(pin)?pin:null,got:!!got};
   for(const r of SUB) mm[r]=0;
   for(const tok of (String(roles).match(/!?(?:PH|BH|[TMRC])/g)||[])){
     const sub=tok.startsWith('!');
@@ -450,7 +459,8 @@ function fromRoles(name,roles,guest,pin){
   if(mm.pin && mm[mm.pin]<1) mm.pin=null;
   return mm;
 }
-const encodeMembers=()=>S.members.map(m=>[m.name, SUB.filter(r=>m[r]>=1).map(r=>(m[r]===2?'!':'')+r).join(''), m.guest?1:0, m.pin||'']);
+// 5要素目=笛所持(0/1)。旧クライアントは4要素までしか読まないので前方・後方とも互換。
+const encodeMembers=()=>S.members.map(m=>[m.name, SUB.filter(r=>m[r]>=1).map(r=>(m[r]===2?'!':'')+r).join(''), m.guest?1:0, m.pin||'', m.got?1:0]);
 let S=load();
 function load(){
   try{
@@ -462,6 +472,7 @@ function load(){
         if(m.D!==undefined && m.M===undefined){ m.M=m.D?1:0; m.R=m.D?1:0; m.C=m.D?1:0; delete m.D; }
         for(const r of SUB) m[r] = m[r]===true?1 : (m[r]|0);
         if(m.pin && !SUB.includes(m.pin)) m.pin = m.pin==='T' ? 'T' : null;
+        m.got = !!m.got;   // v4以前の保存データには無いフィールド（未所持扱いで始まる）
       }
       return j;
     }
@@ -492,7 +503,7 @@ function addMember(guest){
   if(!name){ $('addName').focus(); return; }
   if(S.members.some(m=>m.name===name)){ alert('同じ名前がいます'); return; }
   if(!SUB.some(r=>addSel[r]>=1)){ alert('できるロールを1つ以上選んでください'); return; }
-  const m={id:uid(),name,guest:!!guest,active:true,pin:null};
+  const m={id:uid(),name,guest:!!guest,active:true,pin:null,got:false};
   for(const r of SUB) m[r]=addSel[r];
   S.members.push(m);
   $('addName').value='';
@@ -514,6 +525,7 @@ function renderMembers(){
         `<div class="chipgrid">`+
         SUB.map(r=>`<span class="${chipClass(m[r],r)}" data-r="${r}" data-id="${m.id}">${chipLabel(m[r],r)}</span>`).join('')+
         `</div>`+
+        `<button class="got ${m.got?'yes':'no'}" data-g="${m.id}" title="笛（マウント）を持っているか">${m.got?'🔔笛あり':'笛まだ'}</button>`+
         `<select class="pin ${m.pin?'set':''}" data-p="${m.id}">
            <option value="">ピンなし</option>
            ${SUB.map(r=>`<option value="${r}" ${m.pin===r?'selected':''} ${m[r]>=1?'':'disabled'}>${SUBLABEL[r]}固定</option>`).join('')}
@@ -526,6 +538,7 @@ function renderMembers(){
   box.onclick=e=>{
     const t=e.target;
     if(t.dataset.a){ const m=byId(t.dataset.a); m.active=!m.active; if(!m.active) m.pin=null; save(); render(); }
+    if(t.dataset.g){ const m=byId(t.dataset.g); m.got=!m.got; save(); render(); }
     if(t.dataset.r){ const m=byId(t.dataset.id); m[t.dataset.r]=((m[t.dataset.r]|0)+1)%3; if(m.pin&&m[m.pin]<1) m.pin=null; save(); render(); }
     if(t.dataset.x){ const m=byId(t.dataset.x); if(confirm(`${m.name} を名簿から削除する？`)){ S.members=S.members.filter(x=>x.id!==t.dataset.x); save(); render(); } }
   };
@@ -539,7 +552,8 @@ function renderAnalysis(){
   const st=(l,n)=>`<span class="st">${l} <b>${n}</b></span>`;
   $('stats').innerHTML=att.length
     ? [st('出席',att.length+'人'),st('T',c('T')),st('ピュア',c('PH')),st('バリア',c('BH')),st('近接',c('M')),st('レンジ',c('R')),st('キャス',c('C'))]
-        .concat(att.length>8?[st('待機',(att.length-8)+'人/回')]:[]).join(' ／ ')
+        .concat(att.length>8?[st('待機',(att.length-8)+'人/回')]:[])
+        .concat([st('🔔笛あり',att.filter(p=>p.got).length+'人')]).join(' ／ ')
     : 'メンバーを追加して「今日」をオンにしてください';
   const r=analyze(att);
   if(r.capped) r.total=countTotal(att);
@@ -578,7 +592,7 @@ function renderPatterns(){
   const r=last&&last.r;
   const onlyIdeal=$('tglListIdeal').checked;
   if(!r||!r.total){ $('pcount').textContent=''; $('plist').innerHTML='<div class="p">（パターンなし）</div>'; return; }
-  const src=onlyIdeal? r.idealPool.slice().sort((a,b)=>a.penalty-b.penalty) : r.patterns;
+  const src=onlyIdeal? r.idealPool.slice().sort((a,b)=>a.penalty-b.penalty || a.benchPen-b.benchPen) : r.patterns;
   const totalShown=onlyIdeal? r.idealTotal : r.total;
   const list=src.slice(0,300);
   $('pcount').textContent=`${totalShown.toLocaleString()}${r.capped?'+':''}件${totalShown>list.length?`（先頭${list.length}件を表示）`:''}`;
@@ -590,7 +604,7 @@ function renderPatterns(){
   $('plist').innerHTML=list.map((p,i)=>{
     const w=warnNames(p);
     return `<div class="p">#${i+1}${p.ideal?' ✨':''}${w.length?` <span class="wr">⚠${w.map(esc).join('・')}</span>`:''}　<b class="t">T</b> ${p.T.map(x=>esc(x.name)).join('・')}　<b class="h">H</b> ${p.H.map(x=>esc(x.name)).join('・')}　<b class="d">D</b> ${p.D.map(x=>esc(x.name)).join('・')}`+
-    (p.bench.length?`　<span class="bn">待機: ${p.bench.map(x=>esc(x.name)).join('・')}</span>`:'')+seatTxt(p)+`</div>`;
+    (p.bench.length?`　<span class="bn">待機: ${p.bench.map(x=>(x.got?'🔔':'')+esc(x.name)).join('・')}</span>${p.benchPen?`<span class="wr">（笛まだ${p.benchPen}人が待機）</span>`:''}`:'')+seatTxt(p)+`</div>`;
   }).join('') || '<div class="p">（該当なし）</div>';
 }
 $('tglListIdeal').onchange=renderPatterns;
@@ -600,14 +614,23 @@ $('btnGacha').onclick=()=>{
   const {r,att}=last;
   const preferIdeal=$('tglIdeal').checked;
   let pat=null, note='';
+  // 待機ペナルティ（＝笛未所持なのに待機になる人数）が最小の編成だけに絞り込む。
+  // これで人数があふれた分は、笛を持っている人から先に待機へ回る。
+  const narrowBench=pool=>{
+    const mn=Math.min(...pool.map(p=>p.benchPen));
+    return {pool:pool.filter(p=>p.benchPen===mn), mn};
+  };
+  const benchNote=(mn,pat)=> !pat.bench.length ? ''
+    : `／待機は笛所持者を優先${mn>0?`（笛まだの人が${mn}人待機に回ります＝これ以上は避けられません）`:'（待機は全員笛あり）'}`;
   if(preferIdeal && r.cleanPool.length){
-    pat=r.cleanPool[Math.floor(Math.random()*r.cleanPool.length)];
-    note=`△なし理想形 ${r.cleanTotal.toLocaleString()}通りから1つ`;
+    const nb=narrowBench(r.cleanPool);
+    pat=nb.pool[Math.floor(Math.random()*nb.pool.length)];
+    note=`△なし理想形 ${r.cleanTotal.toLocaleString()}通りから1つ${benchNote(nb.mn,pat)}`;
   } else if(preferIdeal && r.idealPool.length){
     const minPen=Math.min(...r.idealPool.map(p=>p.penalty));
-    const pool=r.idealPool.filter(p=>p.penalty===minPen);
-    pat=pool[Math.floor(Math.random()*pool.length)];
-    note=`理想形（△${minPen}人・最少）${pool.length.toLocaleString()}通りから1つ`;
+    const nb=narrowBench(r.idealPool.filter(p=>p.penalty===minPen));
+    pat=nb.pool[Math.floor(Math.random()*nb.pool.length)];
+    note=`理想形（△${minPen}人・最少）${nb.pool.length.toLocaleString()}通りから1つ${benchNote(nb.mn,pat)}`;
   } else {
     pat=pickAt(att, Math.floor(Math.random()*r.total));
     note=`全 ${r.total.toLocaleString()}通りから1つ${preferIdeal?'（理想形が無いのでごっちゃ）':''}`;
@@ -630,7 +653,9 @@ $('btnGacha').onclick=()=>{
     `<div class="rolebox T"><span class="rl">TANK</span><div class="pchips">${pat.T.map(x=>chip(x,null,pen(x,'T'))).join('')}</div></div>`+
     `<div class="rolebox H"><span class="rl">HEALER${pat.ideal?'':'（ごっちゃ）'}</span><div class="pchips">${hHtml}</div></div>`+
     `<div class="rolebox D full"><span class="rl">DPS${pat.ideal?'':'（ごっちゃ）'}</span><div class="pchips">${dHtml}</div></div>`+
-    (pat.bench.length?`<div class="rolebox B full"><span class="rl">待機</span><div class="pchips">${pat.bench.map(x=>chip(x)).join('')}</div></div>`:'');
+    (pat.bench.length?`<div class="rolebox B full"><span class="rl">待機</span><div class="pchips">${
+      pat.bench.map(x=>`<span class="pchip ${x.got?'':'warn'}">${x.got?'🔔':''}${esc(x.name)}${x.got?'':'（笛まだ）'}</span>`).join('')
+    }</div></div>`:'');
 };
 
 /* 共有リンク（△は '!'プレフィックス。旧形式もそのまま読める） */
@@ -648,7 +673,7 @@ $('btnShare').onclick=async()=>{
     const data=JSON.parse(decodeURIComponent(escape(atob(m[1]))));
     if(!Array.isArray(data)||!data.length) return;
     if(S.members.length && !S.seeded && !confirm(`共有された名簿（${data.length}人）を読み込む？（今の名簿は上書きされます）`)){ history.replaceState(null,'',location.pathname); return; }
-    S.members=data.map(([name,roles,guest,pin])=>fromRoles(name,roles,guest,pin));
+    S.members=data.map(([name,roles,guest,pin,got])=>fromRoles(name,roles,guest,pin,got));
     S.seeded=false;
     save();
   }catch(e){ console.warn('share import failed',e); }
@@ -661,7 +686,7 @@ $('btnShare').onclick=async()=>{
 let cloudLatest=null;
 function applyCloud(){
   if(!cloudLatest) return;
-  S.members=cloudLatest.members.map(([n,r,g,p])=>fromRoles(n,r,g,p));
+  S.members=cloudLatest.members.map(([n,r,g,p,got])=>fromRoles(n,r,g,p,got));
   S.cloudV=cloudLatest.v; S.seeded=false;
   save(); render();
   $('cloudBanner').style.display='none';
@@ -698,7 +723,7 @@ $('btnCloudLoad').onclick=async()=>{
 $('btnCloudSkip').onclick=()=>{ if(cloudLatest){ S.cloudV=cloudLatest.v; save(); } $('cloudBanner').style.display='none'; };
 $('btnCloudSave').onclick=async()=>{
   if(!S.members.length){ alert('名簿が空です'); return; }
-  if(!confirm('今の名簿（ロール○/△/×・スケット・ピン）を「みんなの名簿」として保存する？')) return;
+  if(!confirm('今の名簿（ロール○/△/×・🔔笛所持・スケット・ピン）を「みんなの名簿」として保存する？')) return;
   const btn=$('btnCloudSave');
   btn.disabled=true;
   try{
