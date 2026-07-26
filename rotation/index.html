@@ -1,0 +1,773 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>回し道場 — FF14スキル回し練習</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700;800;900&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ============ DESIGN.md: 白いショーケースの中のポップな宝物 ============ */
+:root{
+  --white:#FFFFFF; --paper:#F2F0EC; --blue:#66CFF2; --verm:#F04F30;
+  --apricot:#F5B57C; --mustard:#F5A623; --pink:#F27CA0; --ink:#14110F;
+  --stage:#1C1626; --sub:#5A5450; --mute:#9A938C; --grid:#E8E4DC;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:'Noto Sans JP',system-ui,sans-serif;color:var(--ink);
+  background:var(--white);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:24px 24px;
+  line-height:1.7; overscroll-behavior:none; user-select:none;-webkit-user-select:none;
+}
+h1,h2,h3,.hd{font-family:'M PLUS Rounded 1c','Noto Sans JP',sans-serif;font-weight:900;line-height:1.15}
+.mono{font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.4;color:var(--sub)}
+
+header{display:flex;align-items:center;gap:10px;padding:12px 16px 8px}
+.logo{background:var(--verm);color:#fff;border:2.5px solid var(--ink);border-radius:14px;
+  padding:4px 14px;font-size:22px;transform:rotate(-1.5deg);
+  box-shadow:4px 4px 0 var(--ink);text-shadow:2px 2px 0 var(--ink);font-family:'M PLUS Rounded 1c';font-weight:900}
+.logo small{font-size:11px;display:block;line-height:1;margin-top:2px;text-shadow:none;font-weight:700}
+#jobBadge{background:var(--mustard);border:2px solid var(--ink);border-radius:9999px;padding:2px 12px;font-weight:800;box-shadow:2px 2px 0 var(--ink)}
+
+nav{display:flex;gap:8px;padding:8px 16px;flex-wrap:wrap}
+nav button{
+  font-family:'M PLUS Rounded 1c';font-weight:800;font-size:15px;color:var(--ink);
+  background:#fff;border:2px solid var(--ink);border-radius:9999px;padding:6px 16px;
+  box-shadow:3px 3px 0 var(--ink);cursor:pointer}
+nav button.on{background:var(--blue)}
+nav button:active{box-shadow:1px 1px 0 var(--ink);transform:translate(2px,2px)}
+
+main{padding:8px 8px 96px;max-width:1200px;margin:0 auto}
+.card{background:#fff;border:2px solid var(--ink);border-radius:16px;box-shadow:4px 4px 0 var(--ink);padding:16px;margin:12px 0}
+.card h2{font-size:20px;margin-bottom:8px}
+.tilt{transform:rotate(-.6deg)}
+.btn{font-family:'M PLUS Rounded 1c';font-weight:800;font-size:15px;color:var(--ink);
+  background:#fff;border:2px solid var(--ink);border-radius:9999px;padding:8px 18px;
+  box-shadow:3px 3px 0 var(--ink);cursor:pointer}
+.btn:active{box-shadow:1px 1px 0 var(--ink);transform:translate(2px,2px)}
+.btn.blue{background:var(--blue)} .btn.verm{background:var(--verm);color:#fff;text-shadow:1px 1px 0 var(--ink)}
+.btn.mus{background:var(--mustard)} .btn.sm{font-size:13px;padding:4px 12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+select,input[type=text],input[type=number],textarea{
+  font:inherit;border:2px solid var(--ink);border-radius:10px;padding:6px 10px;background:#fff;color:var(--ink)}
+textarea{width:100%;min-height:110px;border-radius:12px}
+label.fld{display:flex;align-items:center;gap:8px;font-weight:700;flex-wrap:wrap}
+.tag{display:inline-block;border:2px solid var(--ink);border-radius:8px;padding:0 8px;font-size:12px;font-weight:800;box-shadow:2px 2px 0 var(--ink)}
+.tag.gcd{background:var(--blue)} .tag.ab{background:var(--mustard)} .tag.nin{background:var(--pink)} .tag.mudra{background:var(--apricot)} .tag.role{background:var(--paper)}
+
+/* ============ 練習レーン（ステージダーク） ============ */
+#lanePanel{background:var(--stage);border:2.5px solid var(--ink);border-radius:16px;
+  box-shadow:4px 4px 0 var(--ink);padding:10px 0 6px;margin:12px 0;position:relative;overflow:hidden}
+#laneHead{display:flex;justify-content:space-between;align-items:center;padding:0 14px 6px;color:var(--paper)}
+#laneHead .hd{color:#fff;font-size:16px;text-shadow:2px 2px 0 var(--ink)}
+#hud{display:flex;gap:12px;font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--paper)}
+#hud b{color:var(--mustard)}
+#lane{position:relative;height:92px;margin:0;overflow:hidden}
+#laneTrack{position:absolute;inset:0}
+.lnote{position:absolute;top:14px;width:56px;height:56px;border:2.5px solid var(--ink);border-radius:12px;
+  background:var(--blue);display:flex;align-items:center;justify-content:center;
+  font-family:'M PLUS Rounded 1c';font-weight:800;font-size:11px;text-align:center;line-height:1.1;
+  box-shadow:3px 3px 0 var(--ink);will-change:transform}
+.lnote img{width:100%;height:100%;object-fit:contain;border-radius:9px;pointer-events:none}
+.lnote.ab{width:44px;height:44px;top:8px;background:var(--mustard);border-radius:9999px}
+.lnote.ab img{border-radius:9999px}
+.lnote.nin{background:var(--pink)} .lnote.mudra{background:var(--apricot)}
+.lnote.done{opacity:.25} .lnote.missed{background:var(--verm);opacity:.5}
+.lnote .nm{padding:2px}
+#hitline{position:absolute;left:76px;top:2px;bottom:2px;width:0;border-left:4px solid var(--verm);z-index:3}
+#hitline:before{content:"";position:absolute;left:-34px;top:6px;width:60px;height:60px;border:2.5px dashed rgba(242,240,236,.55);border-radius:14px}
+#judgePop{position:absolute;left:46px;top:-2px;z-index:4;font-family:'M PLUS Rounded 1c';font-weight:900;font-size:18px;
+  color:#fff;text-shadow:2px 2px 0 var(--ink);opacity:0;transition:opacity .12s}
+#laneMsg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:5;
+  font-family:'M PLUS Rounded 1c';font-weight:900;font-size:34px;color:#fff;text-shadow:3px 3px 0 var(--ink);pointer-events:none}
+
+/* ============ ホットバー ============ */
+#bars,#barsEdit{display:flex;flex-direction:column;gap:10px;margin-top:8px;align-items:center}
+.bar{width:100%;max-width:430px;border:2px solid var(--ink);border-radius:14px;background:var(--paper);padding:6px;box-shadow:3px 3px 0 var(--ink)}
+.bar h3{font-size:11px;text-align:center;color:var(--sub);line-height:1.2;margin-bottom:4px}
+.bgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.cell{aspect-ratio:1;border:2px solid var(--ink);border-radius:9px;background:#fff;position:relative;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;
+  font-size:9px;font-weight:800;text-align:center;line-height:1.1;font-family:'M PLUS Rounded 1c'}
+.cell:active{transform:scale(.94)}
+.cell.empty{background:transparent;border-style:dashed;border-color:var(--mute);box-shadow:none}
+.cell img{width:100%;height:100%;object-fit:cover;pointer-events:none}
+.cell .fb{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:1px}
+.cell.catgcd .fb{background:var(--blue)} .cell.catab .fb{background:var(--mustard)}
+.cell.catnin .fb{background:var(--pink)} .cell.catmudra .fb{background:var(--apricot)} .cell.catrole .fb{background:var(--paper)}
+.cell.warn:after{content:"⚠";position:absolute;top:-2px;right:0;font-size:11px;z-index:2;text-shadow:1px 1px 0 #fff}
+.cell.flash-ok{outline:3px solid var(--blue);outline-offset:-1px}
+.cell.flash-ng{outline:3px solid var(--verm);outline-offset:-1px;animation:shake .18s}
+.cell.hint{outline:3px solid var(--mustard);outline-offset:-1px}
+@keyframes shake{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+
+/* ============ 結果・モーダル ============ */
+#result .big{font-size:44px;font-family:'M PLUS Rounded 1c';font-weight:900}
+.statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin:8px 0}
+.stat{border:2px solid var(--ink);border-radius:12px;padding:8px;background:var(--paper);text-align:center;box-shadow:2px 2px 0 var(--ink)}
+.stat b{display:block;font-size:22px;font-family:'M PLUS Rounded 1c'}
+.stat span{font-size:11px;color:var(--sub);font-weight:700}
+#sheet{position:fixed;left:0;right:0;bottom:0;max-height:70vh;overflow:auto;background:#fff;
+  border-top:3px solid var(--ink);border-radius:18px 18px 0 0;box-shadow:0 -4px 0 var(--ink);
+  padding:14px;z-index:50;display:none}
+#sheet.on{display:block}
+#sheet .grp{margin-bottom:10px}
+#sheet .grp h4{font-family:'M PLUS Rounded 1c';font-size:13px;margin-bottom:4px}
+#sheet .opts{display:flex;flex-wrap:wrap;gap:6px}
+.opt{border:2px solid var(--ink);border-radius:9999px;padding:4px 10px;font-size:13px;font-weight:700;background:#fff;cursor:pointer;box-shadow:2px 2px 0 var(--ink)}
+.opt:active{transform:translate(1px,1px);box-shadow:1px 1px 0 var(--ink)}
+#overlay{position:fixed;inset:0;background:rgba(20,17,15,.35);z-index:40;display:none}
+#overlay.on{display:block}
+table.tbl{width:100%;border-collapse:collapse;font-size:13px}
+table.tbl th,table.tbl td{border-bottom:1px solid var(--grid);padding:4px 6px;text-align:left}
+table.tbl input{width:64px;padding:2px 6px}
+.confetti{position:absolute;width:10px;height:14px;z-index:1;pointer-events:none}
+.note-hd{background:var(--blue);border:2px solid var(--ink);border-radius:10px;display:inline-block;
+  padding:2px 10px;font-weight:800;box-shadow:2px 2px 0 var(--ink);transform:rotate(-1deg);margin-bottom:6px;font-size:13px}
+ul.plain{list-style:none} ul.plain li{padding:6px 0;border-bottom:1px solid var(--grid);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.muted{color:var(--mute);font-size:12px}
+@media(min-width:700px){ .bar{max-width:480px} }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">回し道場<small>rotation dojo</small></div>
+  <span id="jobBadge">忍者</span>
+</header>
+<nav>
+  <button data-tab="practice" class="on">練習</button>
+  <button data-tab="fumen">譜面</button>
+  <button data-tab="layout">配置</button>
+  <button data-tab="config">設定</button>
+</nav>
+<main>
+
+<!-- ================= 練習 ================= -->
+<section id="tab-practice">
+  <div class="card tilt" id="pSetup">
+    <h2>今日の稽古</h2>
+    <div class="row" style="margin:6px 0">
+      <label class="fld">譜面
+        <select id="selFumen"></select>
+      </label>
+      <label class="fld">モード
+        <select id="selMode">
+          <option value="A">A: 順当て（時間なし）</option>
+          <option value="B">B: リアルタイム（GCDが流れる）</option>
+        </select>
+      </label>
+    </div>
+    <div class="row">
+      <button class="btn verm" id="btnStart">▶ 開始</button>
+      <span class="muted" id="fumenInfo"></span>
+    </div>
+  </div>
+
+  <div id="lanePanel" style="display:none">
+    <div id="laneHead">
+      <span class="hd" id="laneTitle">—</span>
+      <div id="hud"><span>✔<b id="hOk">0</b></span><span>✖<b id="hMiss">0</b></span><span>ズレ<b id="hOfs">—</b></span><span id="hPos">0/0</span></div>
+    </div>
+    <div id="lane">
+      <div id="hitline"></div>
+      <div id="judgePop"></div>
+      <div id="laneTrack"></div>
+      <div id="laneMsg"></div>
+    </div>
+    <div class="row" style="padding:6px 14px 4px">
+      <button class="btn sm" id="btnStop">■ 中断</button>
+      <button class="btn sm mus" id="btnRestart">↻ もう一回</button>
+    </div>
+  </div>
+
+  <div class="row" style="justify-content:flex-end;margin-top:8px">
+    <button class="btn sm" id="btnAoe">バー4（範囲）: 表示中</button>
+  </div>
+  <div id="bars"></div>
+
+  <div class="card" id="result" style="display:none">
+    <h2>結果</h2>
+    <div class="big" id="rGrade">—</div>
+    <div class="statgrid">
+      <div class="stat"><b id="rAcc">—</b><span>正答率</span></div>
+      <div class="stat"><b id="rPerfect">—</b><span>ピタ押し</span></div>
+      <div class="stat"><b id="rGood">—</b><span>おしい</span></div>
+      <div class="stat"><b id="rMiss">—</b><span>ミス</span></div>
+      <div class="stat"><b id="rOfs">—</b><span>平均ズレ</span></div>
+    </div>
+    <button class="btn blue" id="btnAgain">↻ もう一回</button>
+  </div>
+</section>
+
+<!-- ================= 譜面 ================= -->
+<section id="tab-fumen" style="display:none">
+  <div class="card">
+    <h2>譜面リスト</h2>
+    <ul class="plain" id="fumenList"></ul>
+  </div>
+  <div class="card tilt">
+    <h2>インポート</h2>
+    <p class="muted">スキル名を「→」か改行区切りで貼り付け（game8等の回し表記そのままでOK。別名は自動吸収）</p>
+    <input type="text" id="impName" placeholder="譜面名（例: 2毒盛り3雷獣 開幕）" style="width:100%;margin:6px 0">
+    <textarea id="impText" placeholder="例: 双刃旋→風断ち→旋風刃→毒盛の術→…"></textarea>
+    <div class="row" style="margin-top:8px">
+      <button class="btn blue" id="btnImport">取り込む</button>
+      <span class="muted">GCD/アビの区分・コンボは自動判定</span>
+    </div>
+    <div id="impReport"></div>
+  </div>
+</section>
+
+<!-- ================= 配置 ================= -->
+<section id="tab-layout" style="display:none">
+  <div class="card">
+    <h2>ホットバー配置</h2>
+    <p class="muted">セルをタップしてスキルを割り当て。<b>⚠はスクショからの推定</b>——実際と違ったら直してください（直すと⚠は消えます）</p>
+    <div class="row" style="margin:6px 0">
+      <button class="btn sm" id="btnWarnList">⚠残り: <span id="warnCount">0</span></button>
+      <button class="btn sm" id="btnLayoutReset">初期配置に戻す</button>
+    </div>
+  </div>
+  <div id="barsEdit"></div>
+</section>
+
+<!-- ================= 設定 ================= -->
+<section id="tab-config" style="display:none">
+  <div class="card">
+    <h2>タイミング</h2>
+    <label class="fld">基準GCD（スキスピ反映値・秒）
+      <input type="number" id="cfgGcd" step="0.01" min="1.5" max="3.5" style="width:80px">
+    </label>
+    <label class="fld">レーン表示幅（先読み秒数）
+      <input type="number" id="cfgLook" step="0.5" min="3" max="12" style="width:80px">
+    </label>
+    <label class="fld">判定: ピタ押し ±<input type="number" id="cfgPerfect" step="10" min="50" max="500" style="width:80px">ms ／ おしい ±<input type="number" id="cfgGood" step="10" min="100" max="800" style="width:80px">ms</label>
+    <label class="fld"><input type="checkbox" id="cfgSound"> 打鍵音</label>
+  </div>
+  <div class="card">
+    <h2>スキル別リキャスト調整</h2>
+    <p class="muted">GCDスキルは基準GCDに比例。個別に上書きしたい場合だけ秒数を入れる（空=既定）</p>
+    <div style="max-height:300px;overflow:auto"><table class="tbl" id="recastTbl"></table></div>
+  </div>
+  <div class="card">
+    <h2>アイコン</h2>
+    <label class="fld">取得先
+      <select id="cfgIconSrc">
+        <option value="auto">自動（xivapi→ミラーの順で試す）</option>
+        <option value="none">使わない（色タイル表示）</option>
+        <option value="custom">カスタムURLテンプレート</option>
+      </select>
+    </label>
+    <input type="text" id="cfgIconTpl" placeholder="https://…/{folder}/{icon}.png" style="width:100%;margin-top:6px;display:none">
+    <p class="muted">読めなかったアイコンは自動で色タイルにフォールバックします</p>
+  </div>
+  <div class="card">
+    <h2>データ</h2>
+    <div class="row">
+      <button class="btn sm" id="btnExport">エクスポート（JSON）</button>
+      <button class="btn sm verm" id="btnReset">全初期化</button>
+    </div>
+    <p class="mono" style="margin-top:8px">rotation dojo v0.1 · NIN only · data: ffxiv-datamining (CN mirror, patch 7.x) · JA名は一部要確認⚠</p>
+  </div>
+</section>
+</main>
+
+<div id="overlay"></div>
+<div id="sheet"></div>
+
+<script>
+'use strict';
+/* =====================================================================
+   カタログ: id, ja(日本語名), al(別名/旧名 import照合用), sh(短縮表示),
+   ic(アイコンID), cat(gcd|ab|nin|mudra|role), rc(リキャスト秒; gcdは2.5基準),
+   cg(チャージ数), cb(コンボ元id), lv, jaU(JA名要確認フラグ)
+   ===================================================================== */
+const CATALOG=[
+ // --- GCDウェポンスキル ---
+ {id:2240, ja:'双刃旋', sh:'双刃', ic:601,  cat:'gcd', rc:2.5, lv:1},
+ {id:2242, ja:'風断ち', sh:'風断', ic:602,  cat:'gcd', rc:2.5, cb:2240, lv:4},
+ {id:2255, ja:'旋風刃', sh:'旋風', ic:605,  cat:'gcd', rc:2.5, cb:2242, lv:26},
+ {id:3563, ja:'強甲破点突', sh:'強甲', ic:2915, cat:'gcd', rc:2.5, cb:2242, lv:54},
+ {id:2247, ja:'飛刀術', al:['投刃'], sh:'飛刀', ic:614, cat:'gcd', rc:2.5, lv:15},
+ {id:2254, ja:'死血の華', sh:'死血', ic:615, cat:'gcd', rc:2.5, lv:38},
+ {id:16488,ja:'八卦無刃殺', sh:'八卦', ic:2923, cat:'gcd', rc:2.5, cb:2254, lv:52},
+ {id:25774,ja:'残影鎌鼬', al:['幻影鎌鼬'], sh:'鎌鼬', ic:2929, cat:'gcd', rc:2.5, lv:82},
+ {id:25777,ja:'月影雷獣爪', al:['フォークレイジュ','雷獣爪'], sh:'雷爪', ic:2931, cat:'gcd', rc:2.5, lv:90},
+ {id:25778,ja:'月影雷獣牙', al:['フリートレイジュ','雷獣牙'], sh:'雷牙', ic:2932, cat:'gcd', rc:2.5, lv:90},
+ // --- 忍術（GCD・リキャスト1.5s） ---
+ {id:2260, ja:'忍術', sh:'忍術', ic:2904, cat:'nin', rc:1.5, lv:30},
+ {id:2265, ja:'風魔手裏剣', sh:'風魔', ic:2907, cat:'nin', rc:1.5, lv:30},
+ {id:2266, ja:'火遁の術', al:['カトン'], sh:'火遁', ic:2908, cat:'nin', rc:1.5, lv:35},
+ {id:2267, ja:'雷遁の術', al:['ライトン'], sh:'雷遁', ic:2912, cat:'nin', rc:1.5, lv:35},
+ {id:2268, ja:'氷遁の術', al:['ヒョウトン'], sh:'氷遁', ic:2909, cat:'nin', rc:1.5, lv:45},
+ {id:2269, ja:'風遁の術', al:['フウトン'], sh:'風遁', ic:2910, cat:'nin', rc:1.5, lv:45},
+ {id:2270, ja:'土遁の術', al:['ドトン'], sh:'土遁', ic:2911, cat:'nin', rc:1.5, lv:45},
+ {id:2271, ja:'水遁の術', al:['スイトン'], sh:'水遁', ic:2913, cat:'nin', rc:1.5, lv:45},
+ {id:16491,ja:'劫火滅却の術', al:['豪火滅却の術','ゴウカメッキャク'], sh:'劫火', ic:2925, cat:'nin', rc:1.5, lv:76, jaU:1},
+ {id:16492,ja:'氷晶乱流の術', al:['ヒョウショウランリュウ'], sh:'氷晶', ic:2926, cat:'nin', rc:1.5, lv:76, jaU:1},
+ // --- 印 ---
+ {id:18805,ja:'天の印', sh:'天', ic:2901, cat:'mudra', rc:0.5, lv:30},
+ {id:18806,ja:'地の印', sh:'地', ic:2902, cat:'mudra', rc:0.5, lv:35},
+ {id:18807,ja:'人の印', sh:'人', ic:2903, cat:'mudra', rc:0.5, lv:45},
+ // --- アビリティ ---
+ {id:36957,ja:'毒盛の術', al:['毒盛','ぶんどる'], sh:'毒盛', ic:619, cat:'ab', rc:120, lv:66},
+ {id:36958,ja:'クナイズベイン', al:['だまし討ち','だまし','倶利伽羅'], sh:'クナイ', ic:620, cat:'ab', rc:60, lv:92, jaU:1},
+ {id:2264, ja:'活殺自在', sh:'活殺', ic:2906, cat:'ab', rc:60, lv:50},
+ {id:3566, ja:'夢幻三段', sh:'夢幻', ic:2918, cat:'ab', rc:60, lv:56},
+ {id:7402, ja:'六道輪廻', sh:'六道', ic:2921, cat:'ab', rc:1, lv:68},
+ {id:36960,ja:'是生滅法', sh:'是生', ic:2933, cat:'ab', rc:1, lv:96},
+ {id:7401, ja:'口寄せの術・大蝦蟇', al:['大蝦蟇'], sh:'蝦蟇', ic:2920, cat:'ab', rc:1, lv:62},
+ {id:36959,ja:'口寄せの術・蝦蟇仙', al:['蝦蟇仙','デスフロッグ'], sh:'蝦仙', ic:2934, cat:'ab', rc:1, lv:96, jaU:1},
+ {id:7403, ja:'天地人', sh:'天地', ic:2922, cat:'ab', rc:120, lv:70},
+ {id:36961,ja:'天理人道', sh:'天理', ic:2935, cat:'ab', rc:1, lv:100},
+ {id:16489,ja:'命水', sh:'命水', ic:2924, cat:'ab', rc:120, lv:72},
+ {id:16493,ja:'分身の術', sh:'分身', ic:2927, cat:'ab', rc:90, lv:80},
+ {id:2241, ja:'残影', sh:'残影', ic:607, cat:'ab', rc:120, lv:2},
+ {id:2245, ja:'かくれる', sh:'隠れ', ic:609, cat:'ab', rc:20, lv:10},
+ {id:2262, ja:'縮地', sh:'縮地', ic:2905, cat:'ab', rc:60, cg:2, lv:40},
+ // --- ロール/共通 ---
+ {id:3,    ja:'スプリント', sh:'走', ic:104, cat:'role', rc:60, lv:1},
+ {id:7541, ja:'内丹', sh:'内丹', ic:821, cat:'role', rc:120, lv:8},
+ {id:7542, ja:'ブラッドバス', sh:'血浴', ic:823, cat:'role', rc:90, lv:12},
+ {id:7546, ja:'トゥルーノース', al:['真北'], sh:'真北', ic:830, cat:'role', rc:45, cg:2, lv:50},
+ {id:7548, ja:'アームズレングス', sh:'アム', ic:822, cat:'role', rc:120, lv:32},
+ {id:7549, ja:'牽制', sh:'牽制', ic:828, cat:'role', rc:90, lv:22},
+ {id:7863, ja:'レッグスイープ', sh:'足払', ic:824, cat:'role', rc:40, lv:10},
+];
+const BYID=Object.fromEntries(CATALOG.map(s=>[s.id,s]));
+const CATNAME={gcd:'GCD',ab:'アビ',nin:'忍術',mudra:'印',role:'ロール'};
+
+/* 配置シード: スクショ（2026-07-26）からの推定を反時計90°回転した3段4列。w:1=要確認⚠
+   表示順=バー4（範囲・トグル可）→バー2→バー3（2026-07-27こてつ指定・バー1は廃止） */
+const SEED_BARS=[
+ {name:'バー4（範囲用）', aoe:1, cells:[
+   7549,{id:7548,w:1},null,null,
+   null,{id:2265,w:1},{id:7401,w:1},null,
+   {id:7546,w:1},{id:7863,w:1},{id:7541,w:1},{id:2245,w:1}]},
+ {name:'バー2', cells:[
+   {id:36960,w:1},{id:16493,w:1},{id:25778,w:1},{id:36961,w:1},
+   36957,{id:25777,w:1},{id:25774,w:1},{id:2262,w:1},
+   2264,2254,3566,{id:16489,w:1}]},
+ {name:'バー3', cells:[
+   36958,{id:2255,w:1},{id:2242,w:1},18807,
+   2260,{id:7401,w:1},7403,18806,
+   {id:7402,w:1},2247,{id:2240,w:1},18805]},
+];
+/* デモ譜面（game8「2毒盛り3雷獣」が届くまでの仮） */
+const SEED_FUMEN=[{name:'基本コンボ（デモ）',ro:1,seq:[2240,2242,2255,36957,25777,25778,2240,2242,3566,2255]}];
+
+/* ============ 状態 ============ */
+const LSKEY='rotdojo-v2';
+let S=load();
+function load(){
+  try{const j=JSON.parse(localStorage.getItem(LSKEY));if(j&&j.bars)return j;}catch(e){}
+  return {bars:JSON.parse(JSON.stringify(SEED_BARS)), hideAoe:false, fumen:JSON.parse(JSON.stringify(SEED_FUMEN)),
+    gcd:2.5, look:6, perfect:150, good:350, sound:false, iconSrc:'auto', iconTpl:'', rcOv:{}, alias:{}};
+}
+function save(){ localStorage.setItem(LSKEY,JSON.stringify(S)); }
+function cellObj(v){ return v==null?null:(typeof v==='number'?{id:v}:v); }
+function skillTime(s){ // 実効リキャスト（秒）
+  const ov=S.rcOv[s.id]; if(ov)return +ov;
+  if(s.cat==='gcd')return S.gcd*(s.rc/2.5);
+  return s.rc;
+}
+/* ============ アイコン（複数ソースのフォールバック連鎖） ============ */
+function iconUrls(s){
+  if(S.iconSrc==='none')return [];
+  const id6=String(s.ic).padStart(6,'0'), folder=String(Math.floor(s.ic/1000)*1000).padStart(6,'0');
+  if(S.iconSrc==='custom')return S.iconTpl?[S.iconTpl.replace('{folder}',folder).replace('{icon}',id6)]:[];
+  return [
+    `https://xivapi.com/i/${folder}/${id6}.png`,
+    `https://cafemaker.wakingsands.com/i/${folder}/${id6}.png`,
+    `https://v2.xivapi.com/api/asset?path=ui/icon/${folder}/${id6}.tex&format=png`,
+  ];
+}
+const brokenIcons=new Set();
+function skillFace(s,cls){
+  const urls=brokenIcons.has(s.ic)?[]:iconUrls(s);
+  if(urls.length)return `<img src="${urls[0]}" data-alt="${urls.slice(1).join('|')}" alt="${s.ja}" onerror="this.dispatchEvent(new CustomEvent('iconfail',{bubbles:true}))">`;
+  return `<div class="fb ${cls||''}"><span>${s.sh}</span></div>`;
+}
+document.addEventListener('iconfail',e=>{
+  const img=e.target;
+  const alts=(img.dataset.alt||'').split('|').filter(Boolean);
+  if(alts.length){img.dataset.alt=alts.slice(1).join('|');img.src=alts[0];return;} // 次のソースを試す
+  const sid=+ (img.closest('[data-sid]')?.dataset.sid||0);
+  const s=BYID[sid]; if(s){brokenIcons.add(s.ic);} // 全滅→以後タイル表示
+  const p=img.parentElement; if(p&&s)p.innerHTML=`<div class="fb"><span>${s.sh}</span></div>`;
+},true);
+
+/* ============ タブ ============ */
+document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));
+  ['practice','fumen','layout','config'].forEach(t=>{
+    document.getElementById('tab-'+t).style.display=(b.dataset.tab===t)?'':'none';
+  });
+  if(b.dataset.tab==='layout')renderBars(true);
+  if(b.dataset.tab==='fumen')renderFumenList();
+  if(b.dataset.tab==='config')renderConfig();
+}));
+
+/* ============ ホットバー描画（練習/配置 共用） ============ */
+function renderBars(editMode){
+  const host=document.getElementById(editMode?'barsEdit':'bars');
+  host.innerHTML='';
+  const tg=document.getElementById('btnAoe');
+  if(tg)tg.textContent=S.hideAoe?'バー4（範囲）: 非表示':'バー4（範囲）: 表示中';
+  S.bars.forEach((barDef,bi)=>{
+    if(!editMode&&barDef.aoe&&S.hideAoe)return; // 練習画面ではトグルで非表示
+    const d=document.createElement('div');d.className='bar';
+    d.innerHTML=`<h3>${barDef.name}</h3>`;
+    const g=document.createElement('div');g.className='bgrid';
+    barDef.cells.forEach((v,ci)=>{
+      const o=cellObj(v), s=o&&BYID[o.id];
+      const c=document.createElement('div');
+      c.className='cell'+(s?' cat'+s.cat:' empty')+(o&&o.w?' warn':'');
+      c.dataset.bar=bi;c.dataset.cell=ci;
+      if(s){c.dataset.sid=s.id;c.dataset.ic=s.ic;c.innerHTML=skillFace(s);c.title=s.ja;}
+      if(editMode)c.addEventListener('click',()=>openPicker(bi,ci));
+      else c.addEventListener('pointerdown',ev=>{ev.preventDefault();onInput(s?s.id:null,c);});
+      g.appendChild(c);
+    });
+    d.appendChild(g);host.appendChild(d);
+  });
+  if(editMode)updWarnCount();
+}
+function updWarnCount(){
+  let n=0;S.bars.forEach(b=>b.cells.forEach(v=>{const o=cellObj(v);if(o&&o.w)n++;}));
+  const el=document.getElementById('warnCount');if(el)el.textContent=n;
+}
+
+/* ============ 配置エディタ ============ */
+const sheet=document.getElementById('sheet'), overlay=document.getElementById('overlay');
+function openPicker(bi,ci){
+  const cur=cellObj(S.bars[bi].cells[ci]);
+  let html=`<div class="note-hd">${S.bars[bi].name} / ${Math.floor(ci/4)+1}行${ci%4+1}列 ${cur?('— 現在: '+BYID[cur.id].ja+(cur.w?' ⚠推定':'')):''}</div>`;
+  html+=`<div class="row" style="margin-bottom:8px"><button class="btn sm verm" data-act="clear">空にする</button><button class="btn sm" data-act="close">閉じる</button></div>`;
+  for(const cat of ['gcd','nin','mudra','ab','role']){
+    html+=`<div class="grp"><h4><span class="tag ${cat}">${CATNAME[cat]}</span></h4><div class="opts">`;
+    CATALOG.filter(s=>s.cat===cat).forEach(s=>{html+=`<span class="opt" data-sid="${s.id}">${s.ja}${s.jaU?'⚠':''}</span>`;});
+    html+='</div></div>';
+  }
+  sheet.innerHTML=html;sheet.classList.add('on');overlay.classList.add('on');
+  sheet.onclick=e=>{
+    const t=e.target;
+    if(t.dataset.sid){S.bars[bi].cells[ci]={id:+t.dataset.sid};save();closeSheet();renderBars(true);}
+    else if(t.dataset.act==='clear'){S.bars[bi].cells[ci]=null;save();closeSheet();renderBars(true);}
+    else if(t.dataset.act==='close')closeSheet();
+  };
+}
+function closeSheet(){sheet.classList.remove('on');overlay.classList.remove('on');}
+overlay.addEventListener('click',closeSheet);
+document.getElementById('btnLayoutReset').addEventListener('click',()=>{
+  if(confirm('配置をスクショ由来の初期状態に戻します。よい？')){S.bars=JSON.parse(JSON.stringify(SEED_BARS));save();renderBars(true);}
+});
+document.getElementById('btnWarnList').addEventListener('click',()=>{
+  const items=[];
+  S.bars.forEach((b,bi)=>b.cells.forEach((v,ci)=>{const o=cellObj(v);if(o&&o.w)items.push(`${b.name} ${Math.floor(ci/4)+1}行${ci%4+1}列: ${BYID[o.id].ja}`);}));
+  alert(items.length?('スクショ推定で要確認のセル:\n'+items.join('\n')):'⚠はありません');
+});
+
+/* ============ 譜面 ============ */
+function renderFumenList(){
+  const ul=document.getElementById('fumenList');ul.innerHTML='';
+  S.fumen.forEach((f,i)=>{
+    const li=document.createElement('li');
+    li.innerHTML=`<b>${f.name}</b><span class="muted">${f.seq.length}手</span>`
+      +`<button class="btn sm" data-a="prev">中身</button>`
+      +(f.ro?'<span class="tag mudra">デモ</span>':`<button class="btn sm verm" data-a="del">削除</button>`);
+    li.querySelector('[data-a=prev]').addEventListener('click',()=>{
+      alert(f.name+'\n\n'+f.seq.map(id=>BYID[id]?BYID[id].ja:('?'+id)).join(' → '));
+    });
+    const del=li.querySelector('[data-a=del]');
+    if(del)del.addEventListener('click',()=>{if(confirm(`「${f.name}」を削除する？`)){S.fumen.splice(i,1);save();renderFumenList();refreshFumenSel();}});
+    ul.appendChild(li);
+  });
+}
+function normName(t){
+  return t.normalize('NFKC').replace(/[\s　]+/g,'').replace(/[（(].*?[)）]/g,'').replace(/[・]/g,'');
+}
+const NAMEMAP=(()=>{const m={};CATALOG.forEach(s=>{m[normName(s.ja)]=s.id;(s.al||[]).forEach(a=>m[normName(a)]=s.id);
+  m[normName(s.ja.replace(/の術$/,''))]=m[normName(s.ja.replace(/の術$/,''))]||s.id;});return m;})();
+function matchToken(tok){
+  const n=normName(tok);if(!n)return null;
+  if(S.alias[n])return S.alias[n];
+  if(NAMEMAP[n])return NAMEMAP[n];
+  for(const k in NAMEMAP){if(k.length>=2&&(n.startsWith(k)||k.startsWith(n)))return NAMEMAP[k];}
+  return null;
+}
+document.getElementById('btnImport').addEventListener('click',()=>{
+  const name=document.getElementById('impName').value.trim()||('譜面 '+(S.fumen.length+1));
+  const raw=document.getElementById('impText').value;
+  const toks=raw.split(/[→>＞≫»\n\r,、;／/]+/).map(t=>t.trim()).filter(Boolean);
+  const seq=[],un=[];
+  toks.forEach(t=>{const id=matchToken(t);if(id)seq.push(id);else un.push(t);});
+  const rep=document.getElementById('impReport');
+  if(!toks.length){rep.innerHTML='<p class="muted">入力が空です</p>';return;}
+  let html=`<p><b>${seq.length}手</b>を認識`;
+  if(un.length){
+    html+=` ／ <span style="color:var(--verm);font-weight:800">未解決 ${un.length}件</span></p>`;
+    html+='<ul class="plain">'+un.map((t,i)=>`<li>「${t}」→ <select data-un="${i}"><option value="">（割当てる）</option>${CATALOG.map(s=>`<option value="${s.id}">${s.ja}</option>`).join('')}</select><button class="btn sm" data-skip="${i}">除外</button></li>`).join('')+'</ul>';
+    html+=`<button class="btn blue" id="btnImpFix">解決して保存</button>`;
+    rep.innerHTML=html;
+    document.getElementById('btnImpFix').addEventListener('click',()=>{
+      const seq2=[];const skip=new Set();
+      rep.querySelectorAll('button[data-skip]').forEach(b=>{if(b.dataset.done)skip.add(+b.dataset.skip);});
+      let ui=0;
+      toks.forEach(t=>{const id=matchToken(t);
+        if(id){seq2.push(id);return;}
+        const sel=rep.querySelector(`select[data-un="${ui}"]`);const v=sel&&sel.value;
+        if(v){seq2.push(+v);S.alias[normName(t)]=+v;}
+        ui++;});
+      if(!seq2.length){alert('1手も残っていません');return;}
+      S.fumen.push({name,seq:seq2});save();rep.innerHTML=`<p>✔「${name}」保存（${seq2.length}手）</p>`;refreshFumenSel();renderFumenList();
+    });
+    rep.querySelectorAll('button[data-skip]').forEach(b=>b.addEventListener('click',()=>{b.dataset.done=1;b.textContent='除外✓';}));
+  }else{
+    S.fumen.push({name,seq});save();
+    rep.innerHTML=html+`</p><p>✔「${name}」保存しました</p>`;
+    refreshFumenSel();renderFumenList();
+  }
+});
+function refreshFumenSel(){
+  const sel=document.getElementById('selFumen');sel.innerHTML='';
+  S.fumen.forEach((f,i)=>{const o=document.createElement('option');o.value=i;o.textContent=f.name;sel.appendChild(o);});
+  sel.dispatchEvent(new Event('change'));
+}
+document.getElementById('selFumen').addEventListener('change',e=>{
+  const f=S.fumen[+e.target.value];
+  document.getElementById('fumenInfo').textContent=f?`${f.seq.length}手 / GCD ${S.gcd.toFixed(2)}s`:'';
+});
+
+/* ============ 練習エンジン ============ */
+const P={on:false,mode:'A',notes:[],cur:0,ok:0,miss:0,ofs:[],t0:0,raf:0,speed:0,done:false};
+const lane=document.getElementById('lane'),track=document.getElementById('laneTrack'),
+  laneMsg=document.getElementById('laneMsg'),judgePop=document.getElementById('judgePop');
+const HITX=76;
+function buildTimeline(f){
+  // GCDクロック: GCD/忍術/印がクロックを進める。アビは直前GCD後のずらし配置（表示用）
+  const notes=[];let clock=0;
+  f.seq.forEach(id=>{
+    const s=BYID[id];if(!s)return;
+    const isClock=(s.cat!=='ab'&&s.cat!=='role');
+    if(isClock){notes.push({id,t:clock,cat:s.cat});clock+=skillTime(s);}
+    else{notes.push({id,t:0,cat:s.cat,ab:1});}
+  });
+  // アビの時刻: 直前のクロックノーツ（GCD/忍術/印）基準で0.7sずつ差し込む
+  let lastClockT=0,weave=0;
+  notes.forEach(n=>{ if(!n.ab){lastClockT=n.t;weave=0;} else {weave++;n.t=lastClockT+weave*0.7;} });
+  return notes;
+}
+function startPractice(){
+  const f=S.fumen[+document.getElementById('selFumen').value||0];
+  if(!f){alert('譜面がありません');return;}
+  P.mode=document.getElementById('selMode').value;
+  // 配置に置かれていないスキルは押せない＝除外して知らせる
+  const placed=new Set();
+  S.bars.forEach(b=>{if(b.aoe&&S.hideAoe)return;b.cells.forEach(v=>{const o=cellObj(v);if(o)placed.add(o.id);});});
+  const missing=[...new Set(f.seq.filter(id=>!placed.has(id)))];
+  if(missing.length){
+    alert('ホットバーに無いスキルを飛ばします:\n'+missing.map(id=>BYID[id]?BYID[id].ja:id).join('・')+'\n（配置タブで置けば練習に含まれます）');
+  }
+  P.notes=buildTimeline({...f,seq:f.seq.filter(id=>placed.has(id))}).map(n=>({...n,state:0,offset:null}));
+  if(!P.notes.length){alert('押せるスキルがありません。配置タブを確認してください');return;}
+  P.cur=0;P.ok=0;P.miss=0;P.ofs=[];P.on=true;P.done=false;
+  document.getElementById('pSetup').style.display='none';
+  document.getElementById('result').style.display='none';
+  document.getElementById('lanePanel').style.display='';
+  document.getElementById('laneTitle').textContent=f.name+(P.mode==='A'?'（順当て）':'');
+  renderLaneNotes();updateHud();
+  if(P.mode==='B'){
+    P.speed=(lane.clientWidth-HITX)/S.look; // px/秒
+    countdown(3,()=>{P.t0=performance.now();P.raf=requestAnimationFrame(tickB);});
+  }else{
+    laneMsg.textContent='';positionA();hintA();
+  }
+}
+function countdown(n,cb){
+  if(n===0){laneMsg.textContent='';cb();return;}
+  laneMsg.textContent=n;beep(660,.06);
+  setTimeout(()=>countdown(n-1,cb),700);
+}
+function renderLaneNotes(){
+  track.innerHTML='';
+  P.notes.forEach((n,i)=>{
+    const s=BYID[n.id];
+    const d=document.createElement('div');
+    d.className='lnote '+(n.ab?'ab':'')+' '+(s.cat==='nin'?'nin':'')+(s.cat==='mudra'?'mudra':'');
+    d.dataset.i=i;d.dataset.sid=s.id;
+    d.innerHTML=skillFace(s)||`<span class="nm">${s.sh}</span>`;
+    track.appendChild(d);n.el=d;
+  });
+}
+function positionA(){ // Aモード: 未処理ノーツを等間隔で並べる
+  let x=HITX-28;
+  P.notes.forEach((n,i)=>{
+    if(i<P.cur){n.el.style.transform=`translateX(${-80}px)`;n.el.classList.add('done');return;}
+    n.el.style.transform=`translateX(${x}px)`;
+    x+=n.ab?56:72;
+  });
+}
+function hintA(){
+  document.querySelectorAll('#bars .cell.hint').forEach(c=>c.classList.remove('hint'));
+  const n=P.notes[P.cur];if(!n)return;
+  // 3秒迷ったらヒント点灯
+  clearTimeout(P.hintTimer);
+  P.hintTimer=setTimeout(()=>{
+    const c=document.querySelector(`#bars .cell[data-sid="${n.id}"]`);
+    if(c&&P.on&&P.mode==='A')c.classList.add('hint');
+  },3000);
+}
+function tickB(now){
+  if(!P.on)return;
+  const t=(now-P.t0)/1000;
+  P.notes.forEach(n=>{
+    const x=HITX+(n.t-t)*P.speed-28;
+    n.el.style.transform=`translateX(${x}px)`;
+    if(n.state===0&&t>n.t+S.good/1000){ // 取り逃し
+      n.state=-1;n.el.classList.add('missed');P.miss++;P.cur=Math.max(P.cur,P.notes.indexOf(n)+1);updateHud();
+    }
+  });
+  if(P.notes.every(n=>n.state!==0))return finish();
+  P.raf=requestAnimationFrame(tickB);
+}
+function onInput(sid,cellEl){
+  if(!P.on||P.done||sid==null)return;
+  if(P.mode==='A'){
+    const n=P.notes[P.cur];if(!n)return;
+    if(sid===n.id){n.state=1;P.ok++;flash(cellEl,true);beep(880,.05);P.cur++;positionA();hintA();updateHud();
+      if(P.cur>=P.notes.length)finish();}
+    else{P.miss++;flash(cellEl,false);beep(180,.09);updateHud();}
+  }else{
+    const t=(performance.now()-P.t0)/1000;
+    // 判定窓内で一番近い未処理の同スキルノーツ
+    let best=null,bd=1e9;
+    P.notes.forEach(n=>{if(n.state===0&&n.id===sid){const d=Math.abs(n.t-t);if(d<bd){bd=d;best=n;}}});
+    if(best&&bd<=S.good/1000){
+      best.state=1;P.ok++;P.ofs.push((t-best.t)*1000);
+      best.el.classList.add('done');
+      pop(bd<=S.perfect/1000?'ピタ！':'おしい',bd<=S.perfect/1000);
+      flash(cellEl,true);beep(880,.05);updateHud();
+    }else{
+      P.miss++;flash(cellEl,false);pop('ミス',false);beep(180,.09);updateHud();
+    }
+  }
+}
+function flash(el,ok){if(!el)return;el.classList.add(ok?'flash-ok':'flash-ng');setTimeout(()=>el.classList.remove('flash-ok','flash-ng'),200);}
+function pop(txt,good){judgePop.textContent=txt;judgePop.style.color=good?'#fff':'var(--verm)';judgePop.style.opacity=1;clearTimeout(P.popT);P.popT=setTimeout(()=>judgePop.style.opacity=0,400);}
+function updateHud(){
+  document.getElementById('hOk').textContent=P.ok;
+  document.getElementById('hMiss').textContent=P.miss;
+  document.getElementById('hPos').textContent=`${Math.min(P.cur,P.notes.length)}/${P.notes.length}`;
+  const m=P.ofs.length?Math.round(P.ofs.reduce((a,b)=>a+Math.abs(b),0)/P.ofs.length):null;
+  document.getElementById('hOfs').textContent=m==null?'—':m+'ms';
+}
+function finish(){
+  P.done=true;P.on=false;cancelAnimationFrame(P.raf);clearTimeout(P.hintTimer);
+  const total=P.ok+P.miss;
+  const acc=total?Math.round(P.ok/total*100):0;
+  const perfect=P.ofs.filter(o=>Math.abs(o)<=S.perfect).length;
+  const good=P.ofs.length-perfect;
+  const mean=P.ofs.length?Math.round(P.ofs.reduce((a,b)=>a+Math.abs(b),0)/P.ofs.length):null;
+  document.getElementById('rGrade').textContent=acc>=95?'目録皆伝！':acc>=80?'なかなか':'まだまだ';
+  document.getElementById('rAcc').textContent=acc+'%';
+  document.getElementById('rPerfect').textContent=P.mode==='B'?perfect:'—';
+  document.getElementById('rGood').textContent=P.mode==='B'?good:'—';
+  document.getElementById('rMiss').textContent=P.miss;
+  document.getElementById('rOfs').textContent=mean==null?'—':mean+'ms';
+  document.getElementById('result').style.display='';
+  laneMsg.textContent='おわり！';
+  if(acc>=95)confetti();
+}
+function stopPractice(showSetup){
+  P.on=false;P.done=true;cancelAnimationFrame(P.raf);clearTimeout(P.hintTimer);
+  document.getElementById('lanePanel').style.display='none';
+  document.getElementById('result').style.display='none';
+  if(showSetup!==false)document.getElementById('pSetup').style.display='';
+  document.querySelectorAll('#bars .cell.hint').forEach(c=>c.classList.remove('hint'));
+}
+document.getElementById('btnAoe').addEventListener('click',()=>{
+  S.hideAoe=!S.hideAoe;save();renderBars(false);
+});
+document.getElementById('btnStart').addEventListener('click',startPractice);
+document.getElementById('btnStop').addEventListener('click',()=>stopPractice());
+document.getElementById('btnRestart').addEventListener('click',()=>{stopPractice(false);document.getElementById('lanePanel').style.display='';startPractice();});
+document.getElementById('btnAgain').addEventListener('click',()=>{stopPractice(false);startPractice();});
+
+/* ============ 紙吹雪（DESIGN: 祝祭場面のみ少量） ============ */
+function confetti(){
+  const colors=['#66CFF2','#F04F30'];
+  for(let i=0;i<14;i++){
+    const d=document.createElement('div');d.className='confetti';
+    d.style.background=colors[i%2];d.style.left=(10+Math.random()*80)+'%';d.style.top='-20px';
+    d.style.transform=`rotate(${Math.random()*80-40}deg)`;
+    document.getElementById('lanePanel').appendChild(d);
+    d.animate([{transform:d.style.transform+' translateY(0)'},{transform:d.style.transform+` translateY(${140+Math.random()*60}px)`}],
+      {duration:900+Math.random()*600,easing:'ease-in'}).onfinish=()=>d.remove();
+  }
+}
+/* ============ 音 ============ */
+let AC=null;
+function beep(freq,dur){
+  if(!S.sound)return;
+  try{
+    AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.frequency.value=freq;o.type='square';g.gain.value=.04;
+    o.connect(g);g.connect(AC.destination);o.start();o.stop(AC.currentTime+dur);
+  }catch(e){}
+}
+
+/* ============ 設定 ============ */
+function renderConfig(){
+  document.getElementById('cfgGcd').value=S.gcd;
+  document.getElementById('cfgLook').value=S.look;
+  document.getElementById('cfgPerfect').value=S.perfect;
+  document.getElementById('cfgGood').value=S.good;
+  document.getElementById('cfgSound').checked=S.sound;
+  document.getElementById('cfgIconSrc').value=S.iconSrc;
+  const tpl=document.getElementById('cfgIconTpl');
+  tpl.style.display=S.iconSrc==='custom'?'':'none';tpl.value=S.iconTpl;
+  const tbl=document.getElementById('recastTbl');
+  tbl.innerHTML='<tr><th>スキル</th><th>区分</th><th>既定</th><th>上書き(秒)</th></tr>'+
+    CATALOG.map(s=>`<tr><td>${s.ja}${s.jaU?'⚠':''}</td><td><span class="tag ${s.cat}">${CATNAME[s.cat]}</span></td>`+
+      `<td class="mono">${s.cat==='gcd'?('GCD×'+(s.rc/2.5).toFixed(2)):s.rc+'s'}${s.cg?(' ×'+s.cg):''}</td>`+
+      `<td><input type="number" step="0.1" data-rc="${s.id}" value="${S.rcOv[s.id]||''}"></td></tr>`).join('');
+  tbl.querySelectorAll('input[data-rc]').forEach(inp=>inp.addEventListener('change',()=>{
+    const v=parseFloat(inp.value);
+    if(v>0)S.rcOv[inp.dataset.rc]=v;else delete S.rcOv[inp.dataset.rc];
+    save();
+  }));
+}
+['cfgGcd','cfgLook','cfgPerfect','cfgGood'].forEach(id=>{
+  document.getElementById(id).addEventListener('change',e=>{
+    const map={cfgGcd:'gcd',cfgLook:'look',cfgPerfect:'perfect',cfgGood:'good'};
+    const v=parseFloat(e.target.value);if(v>0)S[map[id]]=v;save();
+    document.getElementById('selFumen').dispatchEvent(new Event('change'));
+  });
+});
+document.getElementById('cfgSound').addEventListener('change',e=>{S.sound=e.target.checked;save();});
+document.getElementById('cfgIconSrc').addEventListener('change',e=>{
+  S.iconSrc=e.target.value;save();brokenIcons.clear();
+  document.getElementById('cfgIconTpl').style.display=S.iconSrc==='custom'?'':'none';
+  renderBars(false);
+});
+document.getElementById('cfgIconTpl').addEventListener('change',e=>{S.iconTpl=e.target.value.trim();save();brokenIcons.clear();renderBars(false);});
+document.getElementById('btnExport').addEventListener('click',()=>{
+  const blob=new Blob([JSON.stringify(S,null,1)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='rotdojo-export.json';a.click();
+});
+document.getElementById('btnReset').addEventListener('click',()=>{
+  if(confirm('譜面・配置・設定を全部消して初期状態に戻します。本当に？')){localStorage.removeItem(LSKEY);location.reload();}
+});
+
+/* ============ 起動 ============ */
+renderBars(false);
+refreshFumenSel();
+renderFumenList();
+</script>
+</body>
+</html>
