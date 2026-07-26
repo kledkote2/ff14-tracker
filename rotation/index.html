@@ -65,28 +65,33 @@ label.fld{display:flex;align-items:center;gap:8px;font-weight:700;flex-wrap:wrap
 #laneHead .hd{color:#fff;font-size:16px;text-shadow:2px 2px 0 var(--ink)}
 #hud{display:flex;gap:12px;font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--paper)}
 #hud b{color:var(--mustard)}
-#lane{position:relative;height:92px;margin:0;overflow:hidden}
+#lane{position:relative;height:80px;margin:0;overflow:hidden}
 #laneTrack{position:absolute;inset:0}
-.lnote{position:absolute;top:14px;width:56px;height:56px;border:2.5px solid var(--ink);border-radius:12px;
+.lnote{position:absolute;top:13px;width:48px;height:48px;border:2.5px solid var(--ink);border-radius:11px;
   background:var(--blue);display:flex;align-items:center;justify-content:center;
   font-family:'M PLUS Rounded 1c';font-weight:800;font-size:11px;text-align:center;line-height:1.1;
   box-shadow:3px 3px 0 var(--ink);will-change:transform}
 .lnote img{width:100%;height:100%;object-fit:contain;border-radius:9px;pointer-events:none}
-.lnote.ab{width:44px;height:44px;top:8px;background:var(--mustard);border-radius:9999px}
+.lnote.ab{width:38px;height:38px;top:8px;background:var(--mustard);border-radius:9999px}
 .lnote.ab img{border-radius:9999px}
 .lnote.nin{background:var(--pink)} .lnote.mudra{background:var(--apricot)}
 .lnote.done{opacity:.25} .lnote.missed{background:var(--verm);opacity:.5}
 .lnote .nm{padding:2px}
 #hitline{position:absolute;left:76px;top:2px;bottom:2px;width:0;border-left:4px solid var(--verm);z-index:3}
-#hitline:before{content:"";position:absolute;left:-34px;top:6px;width:60px;height:60px;border:2.5px dashed rgba(242,240,236,.55);border-radius:14px}
+#hitline:before{content:"";position:absolute;left:-30px;top:8px;width:52px;height:52px;border:2.5px dashed rgba(242,240,236,.55);border-radius:13px}
 #judgePop{position:absolute;left:46px;top:-2px;z-index:4;font-family:'M PLUS Rounded 1c';font-weight:900;font-size:18px;
   color:#fff;text-shadow:2px 2px 0 var(--ink);opacity:0;transition:opacity .12s}
 #laneMsg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:5;
   font-family:'M PLUS Rounded 1c';font-weight:900;font-size:34px;color:#fff;text-shadow:3px 3px 0 var(--ink);pointer-events:none}
 
 /* ============ ホットバー ============ */
-#bars,#barsEdit{display:flex;flex-direction:column;gap:10px;margin-top:8px;align-items:center}
-.bar{width:100%;max-width:430px;border:2px solid var(--ink);border-radius:14px;background:var(--paper);padding:6px;box-shadow:3px 3px 0 var(--ink)}
+#bars,#barsEdit{display:flex;flex-direction:column;gap:8px;margin-top:8px;align-items:center}
+.bar{width:100%;max-width:340px;border:2px solid var(--ink);border-radius:14px;background:var(--paper);padding:5px;box-shadow:3px 3px 0 var(--ink)}
+/* 練習中はレーン＋バー2枚が1画面に収まるコンパクト表示 */
+body.playing header,body.playing nav,body.playing #barCtlRow{display:none}
+body.playing main{padding-top:4px}
+body.playing .bar{max-width:300px;padding:4px}
+body.playing #lanePanel{margin:4px 0 8px}
 .bar h3{font-size:11px;text-align:center;color:var(--sub);line-height:1.2;margin-bottom:4px}
 .bgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
 .cell{aspect-ratio:1;border:2px solid var(--ink);border-radius:9px;background:#fff;position:relative;
@@ -183,7 +188,7 @@ ul.plain{list-style:none} ul.plain li{padding:6px 0;border-bottom:1px solid var(
     </div>
   </div>
 
-  <div class="row" style="justify-content:flex-end;margin-top:8px">
+  <div class="row" id="barCtlRow" style="justify-content:flex-end;margin-top:8px">
     <button class="btn sm" id="btnAoe">バー4（範囲）: 表示中</button>
   </div>
   <div id="bars"></div>
@@ -342,21 +347,21 @@ const CATALOG=[
 const BYID=Object.fromEntries(CATALOG.map(s=>[s.id,s]));
 const CATNAME={gcd:'GCD',ab:'アビ',nin:'忍術',mudra:'印',role:'ロール'};
 
-/* 配置シード: スクショ（2026-07-26）からの推定を反時計90°回転した3段4列。w:1=要確認⚠
-   表示順=バー4（範囲・トグル可）→バー2→バー3（2026-07-27こてつ指定・バー1は廃止） */
+/* 配置シード: こてつ本人がアプリ上で修正した配置（2026-07-27朝スクショを機械照合で転記＝確定版）
+   表示順=バー4（範囲・トグル可）→バー2→バー3（バー1は廃止） */
 const SEED_BARS=[
  {name:'バー4（範囲用）', aoe:1, cells:[
-   7549,{id:7548,w:1},null,null,
-   null,{id:2265,w:1},{id:7401,w:1},null,
-   {id:7546,w:1},{id:7863,w:1},{id:7541,w:1},{id:2245,w:1}]},
+   7549,16488,null,null,
+   null,2254,7401,null,
+   7541,3566,7863,2247]},
  {name:'バー2', cells:[
-   {id:36960,w:1},{id:16493,w:1},{id:25778,w:1},{id:36961,w:1},
-   36957,{id:25777,w:1},{id:25774,w:1},{id:2262,w:1},
-   2264,2254,3566,{id:16489,w:1}]},
+   7548,16493,25777,7546,
+   7542,36957,2241,7403,
+   null,2264,2245,16489]},
  {name:'バー3', cells:[
-   36958,{id:2255,w:1},{id:2242,w:1},18807,
-   2260,{id:7401,w:1},7403,18806,
-   {id:7402,w:1},2247,{id:2240,w:1},18805]},
+   2262,2255,2242,3563,
+   7402,2240,18805,18806,
+   25778,36958,2260,18807]},
 ];
 /* 内蔵譜面: game8「忍者スキル回し(100)」（Inbox 2026-07-27着弾・推奨GCD2.12）から転記 */
 const SEED_FUMEN=[
@@ -367,11 +372,11 @@ const SEED_FUMEN=[
 ];
 
 /* ============ 状態 ============ */
-const LSKEY='rotdojo-v2';
+const LSKEY='rotdojo-v3';
 let S=load();
 function load(){
   try{const j=JSON.parse(localStorage.getItem(LSKEY));if(j&&j.bars)return j;}catch(e){}
-  return {bars:JSON.parse(JSON.stringify(SEED_BARS)), hideAoe:false, fumen:JSON.parse(JSON.stringify(SEED_FUMEN)),
+  return {bars:JSON.parse(JSON.stringify(SEED_BARS)), hideAoe:true, fumen:JSON.parse(JSON.stringify(SEED_FUMEN)),
     gcd:2.12, look:6, perfect:150, good:350, sound:false, iconSrc:'auto', iconTpl:'', rcOv:{}, alias:{}};
 }
 function save(){ localStorage.setItem(LSKEY,JSON.stringify(S)); }
@@ -589,6 +594,7 @@ function startPractice(){
   P.notes=buildTimeline({...f,seq:f.seq.filter(pressable)}).map(n=>({...n,state:0,offset:null}));
   if(!P.notes.length){alert('押せるスキルがありません。配置タブを確認してください');return;}
   P.cur=0;P.ok=0;P.miss=0;P.ofs=[];P.on=true;P.done=false;
+  document.body.classList.add('playing');window.scrollTo(0,0);
   document.getElementById('pSetup').style.display='none';
   document.getElementById('result').style.display='none';
   document.getElementById('lanePanel').style.display='';
@@ -686,6 +692,7 @@ function updateHud(){
 }
 function finish(){
   P.done=true;P.on=false;cancelAnimationFrame(P.raf);clearTimeout(P.hintTimer);
+  document.body.classList.remove('playing');
   const total=P.ok+P.miss;
   const acc=total?Math.round(P.ok/total*100):0;
   const perfect=P.ofs.filter(o=>Math.abs(o)<=S.perfect).length;
@@ -703,6 +710,7 @@ function finish(){
 }
 function stopPractice(showSetup){
   P.on=false;P.done=true;cancelAnimationFrame(P.raf);clearTimeout(P.hintTimer);
+  document.body.classList.remove('playing');
   document.getElementById('lanePanel').style.display='none';
   document.getElementById('result').style.display='none';
   if(showSetup!==false)document.getElementById('pSetup').style.display='';
