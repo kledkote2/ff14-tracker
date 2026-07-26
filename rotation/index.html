@@ -87,11 +87,23 @@ label.fld{display:flex;align-items:center;gap:8px;font-weight:700;flex-wrap:wrap
 /* ============ ホットバー ============ */
 #bars,#barsEdit{display:flex;flex-direction:column;gap:8px;margin-top:8px;align-items:center}
 .bar{width:100%;max-width:340px;border:2px solid var(--ink);border-radius:14px;background:var(--paper);padding:5px;box-shadow:3px 3px 0 var(--ink)}
-/* 練習中はレーン＋バー2枚が1画面に収まるコンパクト表示 */
+/* 練習中はレーン＋バー2枚が1画面（Artifactビューアの狭い視界 約350×550CSSpx）に収まるコンパクト表示 */
 body.playing header,body.playing nav,body.playing #barCtlRow{display:none}
-body.playing main{padding-top:4px}
-body.playing .bar{max-width:300px;padding:4px}
-body.playing #lanePanel{margin:4px 0 8px}
+body.playing main{padding:2px 6px 20px}
+body.playing .bar{max-width:248px;padding:3px;border-radius:11px}
+body.playing .bar h3{font-size:9px;margin-bottom:2px}
+body.playing .bgrid{gap:3px}
+body.playing .cell{border-radius:7px}
+body.playing #bars{gap:6px;margin-top:4px}
+body.playing #lanePanel{margin:2px 0 6px;padding:6px 0 4px}
+body.playing #laneHead{padding:0 10px 4px}
+body.playing #laneHead .hd{font-size:12px;max-width:38%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.playing #hud{font-size:10px;gap:6px}
+body.playing #laneHead .btn.sm{font-size:11px;padding:2px 8px}
+body.playing #lane{height:64px}
+body.playing .lnote{width:44px;height:44px;top:9px}
+body.playing .lnote.ab{width:34px;height:34px;top:6px}
+body.playing #hitline:before{left:-27px;top:9px;width:46px;height:46px}
 .bar h3{font-size:11px;text-align:center;color:var(--sub);line-height:1.2;margin-bottom:4px}
 .bgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
 .cell{aspect-ratio:1;border:2px solid var(--ink);border-radius:9px;background:#fff;position:relative;
@@ -174,17 +186,17 @@ ul.plain{list-style:none} ul.plain li{padding:6px 0;border-bottom:1px solid var(
   <div id="lanePanel" style="display:none">
     <div id="laneHead">
       <span class="hd" id="laneTitle">—</span>
-      <div id="hud"><span>✔<b id="hOk">0</b></span><span>✖<b id="hMiss">0</b></span><span>ズレ<b id="hOfs">—</b></span><span id="hPos">0/0</span></div>
+      <span style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap">
+        <div id="hud"><span>✔<b id="hOk">0</b></span><span>✖<b id="hMiss">0</b></span><span><b id="hOfs">—</b></span><span id="hPos">0/0</span></div>
+        <button class="btn sm" id="btnStop">■</button>
+        <button class="btn sm mus" id="btnRestart">↻</button>
+      </span>
     </div>
     <div id="lane">
       <div id="hitline"></div>
       <div id="judgePop"></div>
       <div id="laneTrack"></div>
       <div id="laneMsg"></div>
-    </div>
-    <div class="row" style="padding:6px 14px 4px">
-      <button class="btn sm" id="btnStop">■ 中断</button>
-      <button class="btn sm mus" id="btnRestart">↻ もう一回</button>
     </div>
   </div>
 
@@ -304,15 +316,15 @@ const CATALOG=[
  {id:25778,ja:'月影雷獣牙', al:['フリートレイジュ','雷獣牙'], sh:'雷牙', ic:2932, cat:'gcd', rc:2.5, lv:90},
  // --- 忍術（GCD・リキャスト1.5s） ---
  {id:2260, ja:'忍術', sh:'忍術', ic:2904, cat:'nin', rc:1.5, lv:30},
- {id:2265, ja:'風魔手裏剣', sh:'風魔', ic:2907, cat:'nin', rc:1.5, lv:30},
- {id:2266, ja:'火遁の術', al:['カトン'], sh:'火遁', ic:2908, cat:'nin', rc:1.5, lv:35},
- {id:2267, ja:'雷遁の術', al:['ライトン'], sh:'雷遁', ic:2912, cat:'nin', rc:1.5, lv:35},
- {id:2268, ja:'氷遁の術', al:['ヒョウトン'], sh:'氷遁', ic:2909, cat:'nin', rc:1.5, lv:45},
- {id:2269, ja:'風遁の術', al:['フウトン'], sh:'風遁', ic:2910, cat:'nin', rc:1.5, lv:45},
- {id:2270, ja:'土遁の術', al:['ドトン'], sh:'土遁', ic:2911, cat:'nin', rc:1.5, lv:45},
- {id:2271, ja:'水遁の術', al:['スイトン'], sh:'水遁', ic:2913, cat:'nin', rc:1.5, lv:45},
- {id:16491,ja:'劫火滅却の術', al:['豪火滅却の術','ゴウカメッキャク'], sh:'劫火', ic:2925, cat:'nin', rc:1.5, lv:76, jaU:1},
- {id:16492,ja:'氷晶乱流の術', al:['ヒョウショウランリュウ'], sh:'氷晶', ic:2926, cat:'nin', rc:1.5, lv:76, jaU:1},
+ {id:2265, ja:'風魔手裏剣', sh:'風魔', ic:2907, cat:'nin', rc:1.5, lv:30, mu:[18805]},
+ {id:2266, ja:'火遁の術', al:['カトン'], sh:'火遁', ic:2908, cat:'nin', rc:1.5, lv:35, mu:[18806,18805]},
+ {id:2267, ja:'雷遁の術', al:['ライトン'], sh:'雷遁', ic:2912, cat:'nin', rc:1.5, lv:35, mu:[18805,18806]},
+ {id:2268, ja:'氷遁の術', al:['ヒョウトン'], sh:'氷遁', ic:2909, cat:'nin', rc:1.5, lv:45, mu:[18805,18807]},
+ {id:2269, ja:'風遁の術', al:['フウトン'], sh:'風遁', ic:2910, cat:'nin', rc:1.5, lv:45, mu:[18807,18806,18805]},
+ {id:2270, ja:'土遁の術', al:['ドトン'], sh:'土遁', ic:2911, cat:'nin', rc:1.5, lv:45, mu:[18807,18805,18806]},
+ {id:2271, ja:'水遁の術', al:['スイトン'], sh:'水遁', ic:2913, cat:'nin', rc:1.5, lv:45, mu:[18805,18806,18807]},
+ {id:16491,ja:'劫火滅却の術', al:['豪火滅却の術','ゴウカメッキャク'], sh:'劫火', ic:2925, cat:'nin', rc:1.5, lv:76, jaU:1, mu:[18806,18805]},
+ {id:16492,ja:'氷晶乱流の術', al:['ヒョウショウランリュウ'], sh:'氷晶', ic:2926, cat:'nin', rc:1.5, lv:76, jaU:1, mu:[18805,18807]},
  // --- 印 ---
  {id:18805,ja:'天の印', sh:'天', ic:2901, cat:'mudra', rc:0.5, lv:30},
  {id:18806,ja:'地の印', sh:'地', ic:2902, cat:'mudra', rc:0.5, lv:35},
@@ -346,6 +358,17 @@ const CATALOG=[
 ];
 const BYID=Object.fromEntries(CATALOG.map(s=>[s.id,s]));
 const CATNAME={gcd:'GCD',ab:'アビ',nin:'忍術',mudra:'印',role:'ロール'};
+/* 置き換わり: このスキルは右のボタン（ホスト）が変化して出る（分身→残影鎌鼬 等） */
+const XFORM={25774:16493, 36960:7402, 36959:7401, 36961:7403};
+const MUDRAS=[18805,18806,18807];
+/* 印バッファ→変化後の忍術（数と最後の印で決まる） */
+function jutsuFromMudra(buf){
+  if(!buf.length)return null;
+  const last=buf[buf.length-1];
+  if(buf.length===1)return 2265;
+  const two={18805:2266,18806:2267,18807:2268},three={18805:2269,18806:2270,18807:2271};
+  return (buf.length===2?two:three)[last]||null;
+}
 
 /* 配置シード: こてつ本人がアプリ上で修正した配置（2026-07-27朝スクショを機械照合で転記＝確定版）
    表示順=バー4（範囲・トグル可）→バー2→バー3（バー1は廃止） */
@@ -576,6 +599,27 @@ function buildTimeline(f){
   // アビの時刻: 直前のクロックノーツ（GCD/忍術/印）基準で0.7sずつ差し込む
   let lastClockT=0,weave=0;
   notes.forEach(n=>{ if(!n.ab){lastClockT=n.t;weave=0;} else {weave++;n.t=lastClockT+weave*0.7;} });
+  // 天地人の直後に続く忍術（最大3つ）はTCJ実行＝印ボタン1押しずつ
+  for(let i=0;i<notes.length;i++){
+    if(notes[i].id===7403){
+      let k=0;
+      for(let j=i+1;j<notes.length&&k<3;j++){
+        const s=BYID[notes[j].id];
+        if(s&&s.cat==='nin'&&s.id!==2260){notes[j].tcj=++k;}
+        else if(s&&(s.cat==='gcd'))break;
+      }
+    }
+  }
+  // 入力列: 忍術=印レシピ＋忍術ボタン／TCJ中=対応する印1押し／置き換わりスキル=ホストのボタン
+  notes.forEach(n=>{
+    const s=BYID[n.id];
+    if(s.cat==='nin'&&s.id!==2260){
+      n.inputs=n.tcj?[MUDRAS[n.tcj-1]]:[...(s.mu||[]),2260];
+    }else{
+      n.inputs=[XFORM[n.id]||n.id];
+    }
+    n.ii=0;
+  });
   return notes;
 }
 function startPractice(){
@@ -583,23 +627,29 @@ function startPractice(){
   if(!f){alert('譜面がありません');return;}
   P.mode=document.getElementById('selMode').value;
   // 配置に置かれていないスキルは押せない＝除外して知らせる
-  // ただし忍術系は「忍術」ボタン(2260)が置いてあれば叩ける（実機と同じ・印は展開しない）
+  // 忍術=印レシピ＋忍術ボタンが必要／置き換わりスキル=ホストのボタンがあればOK
   const placed=new Set();
   S.bars.forEach(b=>{if(b.aoe&&S.hideAoe)return;b.cells.forEach(v=>{const o=cellObj(v);if(o)placed.add(o.id);});});
-  const pressable=id=>placed.has(id)||(BYID[id]&&BYID[id].cat==='nin'&&placed.has(2260));
+  const pressable=id=>{
+    const s=BYID[id];if(!s)return false;
+    if(XFORM[id])return placed.has(id)||placed.has(XFORM[id]);
+    if(s.cat==='nin'&&id!==2260)return [...(s.mu||[]),2260].every(x=>placed.has(x));
+    return placed.has(id);
+  };
   const missing=[...new Set(f.seq.filter(id=>!pressable(id)&&!(BYID[id]&&BYID[id].opt)))];
   if(missing.length){
     alert('ホットバーに無いスキルを飛ばします:\n'+missing.map(id=>BYID[id]?BYID[id].ja:id).join('・')+'\n（配置タブで置けば練習に含まれます）');
   }
   P.notes=buildTimeline({...f,seq:f.seq.filter(pressable)}).map(n=>({...n,state:0,offset:null}));
   if(!P.notes.length){alert('押せるスキルがありません。配置タブを確認してください');return;}
+  P.mudra=[];
   P.cur=0;P.ok=0;P.miss=0;P.ofs=[];P.on=true;P.done=false;
   document.body.classList.add('playing');window.scrollTo(0,0);
   document.getElementById('pSetup').style.display='none';
   document.getElementById('result').style.display='none';
   document.getElementById('lanePanel').style.display='';
   document.getElementById('laneTitle').textContent=f.name+(P.mode==='A'?'（順当て）':'');
-  renderLaneNotes();updateHud();
+  renderLaneNotes();updateHud();refreshDynamicCells();
   if(P.mode==='B'){
     P.speed=(lane.clientWidth-HITX)/S.look; // px/秒
     countdown(3,()=>{P.t0=performance.now();P.raf=requestAnimationFrame(tickB);});
@@ -634,51 +684,87 @@ function positionA(){ // Aモード: 未処理ノーツを等間隔で並べる
 function hintA(){
   document.querySelectorAll('#bars .cell.hint').forEach(c=>c.classList.remove('hint'));
   const n=P.notes[P.cur];if(!n)return;
-  // 3秒迷ったらヒント点灯
+  // 3秒迷ったら「次に押すべきボタン」（入力列の現在位置）をヒント点灯
   clearTimeout(P.hintTimer);
   P.hintTimer=setTimeout(()=>{
-    let c=document.querySelector(`#bars .cell[data-sid="${n.id}"]`);
-    if(!c&&BYID[n.id]&&BYID[n.id].cat==='nin')c=document.querySelector('#bars .cell[data-sid="2260"]');
+    const exp=n.inputs[n.ii];
+    const c=document.querySelector(`#bars .cell[data-sid="${exp}"]`)||document.querySelector(`#bars .cell[data-sid="${n.id}"]`);
     if(c&&P.on&&P.mode==='A')c.classList.add('hint');
   },3000);
+}
+/* 置き換わりボタンの動的描画: 忍術ボタン=印バッファで変化／ホストボタン=現在ノーツで変化 */
+function refreshDynamicCells(){
+  const n=P.on?P.notes[P.cur]:null;
+  // 忍術ボタン
+  const ninCell=document.querySelector('#bars .cell[data-sid="2260"]');
+  if(ninCell){
+    let show=2260;
+    const j=jutsuFromMudra(P.mudra||[]);
+    if(j){show=j;
+      // 活殺強化（劫火/氷晶）が現在ノーツならそちらの顔に
+      if(n&&(n.id===16491||n.id===16492)&&BYID[n.id].mu&&jutsuFromMudra(BYID[n.id].mu)===j)show=n.id;
+    }
+    ninCell.innerHTML=skillFace(BYID[show]);ninCell.title=BYID[show].ja;
+  }
+  // ホストボタン（分身→鎌鼬 等）: 現在ノーツが置き換わりスキルなら変化後の顔
+  for(const [subId,hostId] of Object.entries(XFORM)){
+    const c=document.querySelector(`#bars .cell[data-sid="${hostId}"]`);
+    if(!c)continue;
+    const showSub=n&&String(n.id)===subId;
+    c.innerHTML=skillFace(BYID[showSub?+subId:hostId]);
+    c.title=BYID[showSub?+subId:hostId].ja;
+  }
 }
 function tickB(now){
   if(!P.on)return;
   const t=(now-P.t0)/1000;
+  let anyOpen=false,changed=false;
   P.notes.forEach(n=>{
-    const x=HITX+(n.t-t)*P.speed-28;
+    const x=HITX+(n.t-t)*P.speed-24;
     n.el.style.transform=`translateX(${x}px)`;
     if(n.state===0&&t>n.t+S.good/1000){ // 取り逃し
-      n.state=-1;n.el.classList.add('missed');P.miss++;P.cur=Math.max(P.cur,P.notes.indexOf(n)+1);updateHud();
+      n.state=-1;n.el.classList.add('missed');P.miss++;P.mudra=[];changed=true;
     }
+    if(n.state===0)anyOpen=true;
   });
-  if(P.notes.every(n=>n.state!==0))return finish();
+  if(changed){updateHud();if(!advancePtr())return;}
+  if(!anyOpen&&P.notes.every(n=>n.state!==0))return finish();
   P.raf=requestAnimationFrame(tickB);
 }
-function hitMatch(noteId,sid){ // 忍術ノーツは忍術ボタンでも正解
-  if(noteId===sid)return true;
-  const ns=BYID[noteId];return !!(ns&&ns.cat==='nin'&&sid===2260);
+function advancePtr(){
+  P.cur=P.notes.findIndex(n=>n.state===0);
+  if(P.cur<0){finish();return false;}
+  refreshDynamicCells();
+  return true;
+}
+function completeNote(n,cellEl,t){
+  n.state=1;P.ok++;P.mudra=[];
+  if(P.mode==='B'&&t!=null){
+    const ofs=(t-n.t)*1000;P.ofs.push(ofs);
+    n.el.classList.add('done');
+    pop(Math.abs(ofs)<=S.perfect?'ピタ！':'おしい',Math.abs(ofs)<=S.perfect);
+  }
+  flash(cellEl,true);beep(880,.05);
+  if(advancePtr()&&P.mode==='A'){positionA();hintA();}
+  updateHud();
 }
 function onInput(sid,cellEl){
   if(!P.on||P.done||sid==null)return;
-  if(P.mode==='A'){
-    const n=P.notes[P.cur];if(!n)return;
-    if(hitMatch(n.id,sid)){n.state=1;P.ok++;flash(cellEl,true);beep(880,.05);P.cur++;positionA();hintA();updateHud();
-      if(P.cur>=P.notes.length)finish();}
-    else{P.miss++;flash(cellEl,false);beep(180,.09);updateHud();}
+  const n=P.notes[P.cur];if(!n)return;
+  const expected=n.inputs[n.ii];
+  const okPress=(sid===expected)||(expected===XFORM[n.id]&&sid===n.id);
+  const t=P.mode==='B'?(performance.now()-P.t0)/1000:null;
+  if(okPress){
+    n.ii++;
+    if(MUDRAS.includes(expected))P.mudra.push(expected);
+    if(n.ii>=n.inputs.length){completeNote(n,cellEl,t);}
+    else{flash(cellEl,true);beep(660,.03);refreshDynamicCells();}
   }else{
-    const t=(performance.now()-P.t0)/1000;
-    // 判定窓内で一番近い未処理の対応ノーツ
-    let best=null,bd=1e9;
-    P.notes.forEach(n=>{if(n.state===0&&hitMatch(n.id,sid)){const d=Math.abs(n.t-t);if(d<bd){bd=d;best=n;}}});
-    if(best&&bd<=S.good/1000){
-      best.state=1;P.ok++;P.ofs.push((t-best.t)*1000);
-      best.el.classList.add('done');
-      pop(bd<=S.perfect/1000?'ピタ！':'おしい',bd<=S.perfect/1000);
-      flash(cellEl,true);beep(880,.05);updateHud();
-    }else{
-      P.miss++;flash(cellEl,false);pop('ミス',false);beep(180,.09);updateHud();
-    }
+    // 誤打鍵: 印バッファ・入力途中をリセット（実機の兎と同じ扱い）
+    n.ii=0;P.mudra=[];
+    P.miss++;flash(cellEl,false);if(P.mode==='B')pop('ミス',false);
+    beep(180,.09);refreshDynamicCells();updateHud();
+    if(P.mode==='A')hintA();
   }
 }
 function flash(el,ok){if(!el)return;el.classList.add(ok?'flash-ok':'flash-ng');setTimeout(()=>el.classList.remove('flash-ok','flash-ng'),200);}
@@ -714,7 +800,7 @@ function stopPractice(showSetup){
   document.getElementById('lanePanel').style.display='none';
   document.getElementById('result').style.display='none';
   if(showSetup!==false)document.getElementById('pSetup').style.display='';
-  document.querySelectorAll('#bars .cell.hint').forEach(c=>c.classList.remove('hint'));
+  renderBars(false); // 置き換わり表示をリセット
 }
 document.getElementById('btnAoe').addEventListener('click',()=>{
   S.hideAoe=!S.hideAoe;save();renderBars(false);
