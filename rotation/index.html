@@ -314,7 +314,7 @@ const CATALOG=[
  {id:18807,ja:'人の印', sh:'人', ic:2903, cat:'mudra', rc:0.5, lv:45},
  // --- アビリティ ---
  {id:36957,ja:'毒盛の術', al:['毒盛','ぶんどる'], sh:'毒盛', ic:619, cat:'ab', rc:120, lv:66},
- {id:36958,ja:'クナイズベイン', al:['だまし討ち','だまし','倶利伽羅'], sh:'クナイ', ic:620, cat:'ab', rc:60, lv:92, jaU:1},
+ {id:36958,ja:'百雷銃', al:['だまし討ち','だまし','クナイズベイン','倶利伽羅'], sh:'百雷', ic:620, cat:'ab', rc:60, lv:92},
  {id:2264, ja:'活殺自在', sh:'活殺', ic:2906, cat:'ab', rc:60, lv:50},
  {id:3566, ja:'夢幻三段', sh:'夢幻', ic:2918, cat:'ab', rc:60, lv:56},
  {id:7402, ja:'六道輪廻', sh:'六道', ic:2921, cat:'ab', rc:1, lv:68},
@@ -336,6 +336,8 @@ const CATALOG=[
  {id:7548, ja:'アームズレングス', sh:'アム', ic:822, cat:'role', rc:120, lv:32},
  {id:7549, ja:'牽制', sh:'牽制', ic:828, cat:'role', rc:90, lv:22},
  {id:7863, ja:'レッグスイープ', sh:'足払', ic:824, cat:'role', rc:40, lv:10},
+ // --- アイテム ---
+ {id:99901,ja:'薬', al:['強化薬','ポーション','タンサック'], sh:'薬', ic:0, cat:'ab', rc:270, lv:1, opt:1},
 ];
 const BYID=Object.fromEntries(CATALOG.map(s=>[s.id,s]));
 const CATNAME={gcd:'GCD',ab:'アビ',nin:'忍術',mudra:'印',role:'ロール'};
@@ -356,8 +358,13 @@ const SEED_BARS=[
    2260,{id:7401,w:1},7403,18806,
    {id:7402,w:1},2247,{id:2240,w:1},18805]},
 ];
-/* デモ譜面（game8「2毒盛り3雷獣」が届くまでの仮） */
-const SEED_FUMEN=[{name:'基本コンボ（デモ）',ro:1,seq:[2240,2242,2255,36957,25777,25778,2240,2242,3566,2255]}];
+/* 内蔵譜面: game8「忍者スキル回し(100)」（Inbox 2026-07-27着弾・推奨GCD2.12）から転記 */
+const SEED_FUMEN=[
+ {name:'開幕（2毒盛り・3百雷銃）',ro:1,seq:[2271,2264,2240,99901,2242,36957,16493,25774,36958,3563,3566,16492,2267,7403,2265,2267,2271,16489,25778,36960,36961,25778,7402,2267,25778,2240,2242,2255]},
+ {name:'60秒バースト（百雷銃のみ）',ro:1,seq:[36958,16492,3566,2267,7402,25778,2240,2242,2267,25778,2255,25774]},
+ {name:'120秒バースト',ro:1,seq:[2240,2242,2264,2255,36957,25774,36958,3566,16492,36960,2267,25778,7403,2265,2267,2271,36961,25778,16489,7402,2267,25778]},
+ {name:'基本コンボ（デモ）',ro:1,seq:[2240,2242,2255,36957,25777,25778,2240,2242,3566,2255]},
+];
 
 /* ============ 状態 ============ */
 const LSKEY='rotdojo-v2';
@@ -365,7 +372,7 @@ let S=load();
 function load(){
   try{const j=JSON.parse(localStorage.getItem(LSKEY));if(j&&j.bars)return j;}catch(e){}
   return {bars:JSON.parse(JSON.stringify(SEED_BARS)), hideAoe:false, fumen:JSON.parse(JSON.stringify(SEED_FUMEN)),
-    gcd:2.5, look:6, perfect:150, good:350, sound:false, iconSrc:'auto', iconTpl:'', rcOv:{}, alias:{}};
+    gcd:2.12, look:6, perfect:150, good:350, sound:false, iconSrc:'auto', iconTpl:'', rcOv:{}, alias:{}};
 }
 function save(){ localStorage.setItem(LSKEY,JSON.stringify(S)); }
 function cellObj(v){ return v==null?null:(typeof v==='number'?{id:v}:v); }
@@ -478,7 +485,7 @@ function renderFumenList(){
     const li=document.createElement('li');
     li.innerHTML=`<b>${f.name}</b><span class="muted">${f.seq.length}手</span>`
       +`<button class="btn sm" data-a="prev">中身</button>`
-      +(f.ro?'<span class="tag mudra">デモ</span>':`<button class="btn sm verm" data-a="del">削除</button>`);
+      +(f.ro?'<span class="tag mudra">内蔵</span>':`<button class="btn sm verm" data-a="del">削除</button>`);
     li.querySelector('[data-a=prev]').addEventListener('click',()=>{
       alert(f.name+'\n\n'+f.seq.map(id=>BYID[id]?BYID[id].ja:('?'+id)).join(' → '));
     });
@@ -566,13 +573,15 @@ function startPractice(){
   if(!f){alert('譜面がありません');return;}
   P.mode=document.getElementById('selMode').value;
   // 配置に置かれていないスキルは押せない＝除外して知らせる
+  // ただし忍術系は「忍術」ボタン(2260)が置いてあれば叩ける（実機と同じ・印は展開しない）
   const placed=new Set();
   S.bars.forEach(b=>{if(b.aoe&&S.hideAoe)return;b.cells.forEach(v=>{const o=cellObj(v);if(o)placed.add(o.id);});});
-  const missing=[...new Set(f.seq.filter(id=>!placed.has(id)))];
+  const pressable=id=>placed.has(id)||(BYID[id]&&BYID[id].cat==='nin'&&placed.has(2260));
+  const missing=[...new Set(f.seq.filter(id=>!pressable(id)&&!(BYID[id]&&BYID[id].opt)))];
   if(missing.length){
     alert('ホットバーに無いスキルを飛ばします:\n'+missing.map(id=>BYID[id]?BYID[id].ja:id).join('・')+'\n（配置タブで置けば練習に含まれます）');
   }
-  P.notes=buildTimeline({...f,seq:f.seq.filter(id=>placed.has(id))}).map(n=>({...n,state:0,offset:null}));
+  P.notes=buildTimeline({...f,seq:f.seq.filter(pressable)}).map(n=>({...n,state:0,offset:null}));
   if(!P.notes.length){alert('押せるスキルがありません。配置タブを確認してください');return;}
   P.cur=0;P.ok=0;P.miss=0;P.ofs=[];P.on=true;P.done=false;
   document.getElementById('pSetup').style.display='none';
@@ -617,7 +626,8 @@ function hintA(){
   // 3秒迷ったらヒント点灯
   clearTimeout(P.hintTimer);
   P.hintTimer=setTimeout(()=>{
-    const c=document.querySelector(`#bars .cell[data-sid="${n.id}"]`);
+    let c=document.querySelector(`#bars .cell[data-sid="${n.id}"]`);
+    if(!c&&BYID[n.id]&&BYID[n.id].cat==='nin')c=document.querySelector('#bars .cell[data-sid="2260"]');
     if(c&&P.on&&P.mode==='A')c.classList.add('hint');
   },3000);
 }
@@ -634,18 +644,22 @@ function tickB(now){
   if(P.notes.every(n=>n.state!==0))return finish();
   P.raf=requestAnimationFrame(tickB);
 }
+function hitMatch(noteId,sid){ // 忍術ノーツは忍術ボタンでも正解
+  if(noteId===sid)return true;
+  const ns=BYID[noteId];return !!(ns&&ns.cat==='nin'&&sid===2260);
+}
 function onInput(sid,cellEl){
   if(!P.on||P.done||sid==null)return;
   if(P.mode==='A'){
     const n=P.notes[P.cur];if(!n)return;
-    if(sid===n.id){n.state=1;P.ok++;flash(cellEl,true);beep(880,.05);P.cur++;positionA();hintA();updateHud();
+    if(hitMatch(n.id,sid)){n.state=1;P.ok++;flash(cellEl,true);beep(880,.05);P.cur++;positionA();hintA();updateHud();
       if(P.cur>=P.notes.length)finish();}
     else{P.miss++;flash(cellEl,false);beep(180,.09);updateHud();}
   }else{
     const t=(performance.now()-P.t0)/1000;
-    // 判定窓内で一番近い未処理の同スキルノーツ
+    // 判定窓内で一番近い未処理の対応ノーツ
     let best=null,bd=1e9;
-    P.notes.forEach(n=>{if(n.state===0&&n.id===sid){const d=Math.abs(n.t-t);if(d<bd){bd=d;best=n;}}});
+    P.notes.forEach(n=>{if(n.state===0&&hitMatch(n.id,sid)){const d=Math.abs(n.t-t);if(d<bd){bd=d;best=n;}}});
     if(best&&bd<=S.good/1000){
       best.state=1;P.ok++;P.ofs.push((t-best.t)*1000);
       best.el.classList.add('done');
