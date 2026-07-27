@@ -668,7 +668,7 @@ function startPractice(){
   const ftimes=(f.times&&f.times.length===f.seq.length)?f.times.filter((_,i)=>keep[i]):undefined;
   P.notes=buildTimeline({...f,seq:fseq,times:ftimes}).map(n=>({...n,state:0,offset:null}));
   if(!P.notes.length){alert('押せるスキルがありません。配置タブを確認してください');return;}
-  P.mudra=[];P.kassatsu=false;P.rabbit=false;
+  P.mudra=[];P.kassatsu=false;P.rabbit=false;P.lastSid=null;
   P.cur=0;P.ok=0;P.miss=0;P.ofs=[];P.on=true;P.done=false;
   document.body.classList.add('playing');window.scrollTo(0,0);
   document.getElementById('pSetup').style.display='none';
@@ -785,11 +785,13 @@ function onInput(sid,cellEl){
   const okPress=(sid===expected)||(expected===XFORM[n.id]&&sid===n.id);
   const t=P.mode==='B'?(performance.now()-P.t0)/1000:null;
   if(okPress){
-    n.ii++;P.rabbit=false;
+    n.ii++;P.rabbit=false;P.lastSid=sid;
     if(MUDRAS.includes(expected))P.mudra.push(expected);
     if(n.ii>=n.inputs.length){completeNote(n,cellEl,t);}
     else{flash(cellEl,true);beep(660,.03);refreshDynamicCells();}
   }else{
+    // 直前に受理したボタンの連打（忍術後の追い押し・印の2度押し等）は実機同様に無害＝無視
+    if(sid===P.lastSid)return;
     // 誤打鍵: 印バッファ・入力途中をリセット。印がらみのミスは忍術ボタンが兎になる
     P.rabbit=(P.mudra.length>0)||MUDRAS.includes(sid)||MUDRAS.includes(expected);
     n.ii=0;P.mudra=[];
