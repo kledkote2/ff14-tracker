@@ -387,8 +387,12 @@ const SEED_BARS=[
    7402,2240,18805,18806,
    25778,36958,2260,18807]},
 ];
-/* 内蔵譜面: game8「忍者スキル回し(100)」（Inbox 2026-07-27着弾・推奨GCD2.12）から転記 */
+/* 内蔵譜面: game8「忍者スキル回し(100)」（Inbox 2026-07-27着弾・推奨GCD2.12）から転記。
+   「実録」はraalm.com（FFLogs上位100の静的JSON）から変換＝実際の押しタイミング付き（timesは秒・TCJ3連は合成） */
 const SEED_FUMEN=[
+ {name:'実録: トップ勢の開幕（絶DM rdps1位・実タイミング）',ro:1,
+  seq:[2271,2264,2240,36957,36958,2242,16493,3566,16492,2267,7403,2265,2267,2271,36961,25778,16489,36960,25778,2267,25778,7546,3563,7402,2240,2242,2255,2240,2242,3563,7402,2240,2242,3563,25774],
+  times:[0.0,0.7,1.5,2.2,2.9,3.6,4.2,4.8,6.8,9.5,10.2,11.2,12.2,13.2,13.6,14.5,15.2,15.8,16.6,19.8,21.3,22.2,23.4,24.5,25.7,27.8,29.9,31.9,34.0,36.2,36.9,38.3,40.4,42.5,44.7]},
  {name:'開幕（2毒盛り・3百雷銃）',ro:1,seq:[2271,2264,2240,99901,2242,36957,16493,25774,36958,3563,3566,16492,2267,7403,2265,2267,2271,16489,25778,36960,36961,25778,7402,2267,25778,2240,2242,2255]},
  {name:'60秒バースト（百雷銃のみ）',ro:1,seq:[36958,16492,3566,2267,7402,25778,2240,2242,2267,25778,2255,25774]},
  {name:'120秒バースト',ro:1,seq:[2240,2242,2264,2255,36957,25774,36958,3566,16492,36960,2267,25778,7403,2265,2267,2271,36961,25778,16489,7402,2267,25778]},
@@ -403,6 +407,8 @@ function load(){
     // 修復(2026-07-27): 初期シードの風断ち/旋風刃の並びミスを、未修正の状態にだけ適用して入れ替え
     const b3=j.bars.find(b=>b.name==='バー3');
     if(b3&&b3.cells[1]===2255&&b3.cells[2]===2242){b3.cells[1]=2242;b3.cells[2]=2255;}
+    // 内蔵譜面は常に最新シードへ同期（ユーザー取り込み分=ro無しは保持）
+    j.fumen=[...JSON.parse(JSON.stringify(SEED_FUMEN)),...(j.fumen||[]).filter(f=>!f.ro)];
     return j;
   }}catch(e){}
   return {bars:JSON.parse(JSON.stringify(SEED_BARS)), hideAoe:true, fumen:JSON.parse(JSON.stringify(SEED_FUMEN)),
@@ -595,17 +601,26 @@ const lane=document.getElementById('lane'),track=document.getElementById('laneTr
   laneMsg=document.getElementById('laneMsg'),judgePop=document.getElementById('judgePop');
 const HITX=76;
 function buildTimeline(f){
-  // GCDクロック: GCD/忍術/印がクロックを進める。アビは直前GCD後のずらし配置（表示用）
-  const notes=[];let clock=0;
-  f.seq.forEach(id=>{
-    const s=BYID[id];if(!s)return;
-    const isClock=(s.cat!=='ab'&&s.cat!=='role');
-    if(isClock){notes.push({id,t:clock,cat:s.cat});clock+=skillTime(s);}
-    else{notes.push({id,t:0,cat:s.cat,ab:1});}
-  });
-  // アビの時刻: 直前のクロックノーツ（GCD/忍術/印）基準で0.7sずつ差し込む
-  let lastClockT=0,weave=0;
-  notes.forEach(n=>{ if(!n.ab){lastClockT=n.t;weave=0;} else {weave++;n.t=lastClockT+weave*0.7;} });
+  const notes=[];
+  const real=f.times&&f.times.length===f.seq.length; // 実録譜面=実タイミングをそのまま使う
+  if(real){
+    f.seq.forEach((id,i)=>{
+      const s=BYID[id];if(!s)return;
+      notes.push({id,t:f.times[i],cat:s.cat,ab:(s.cat==='ab'||s.cat==='role')?1:undefined});
+    });
+  }else{
+    // GCDクロック: GCD/忍術/印がクロックを進める。アビは直前GCD後のずらし配置（表示用）
+    let clock=0;
+    f.seq.forEach(id=>{
+      const s=BYID[id];if(!s)return;
+      const isClock=(s.cat!=='ab'&&s.cat!=='role');
+      if(isClock){notes.push({id,t:clock,cat:s.cat});clock+=skillTime(s);}
+      else{notes.push({id,t:0,cat:s.cat,ab:1});}
+    });
+    // アビの時刻: 直前のクロックノーツ（GCD/忍術/印）基準で0.7sずつ差し込む
+    let lastClockT=0,weave=0;
+    notes.forEach(n=>{ if(!n.ab){lastClockT=n.t;weave=0;} else {weave++;n.t=lastClockT+weave*0.7;} });
+  }
   // 天地人の直後に続く忍術（最大3つ）はTCJ実行＝印ボタン1押しずつ
   for(let i=0;i<notes.length;i++){
     if(notes[i].id===7403){
@@ -647,7 +662,11 @@ function startPractice(){
   if(missing.length){
     alert('ホットバーに無いスキルを飛ばします:\n'+missing.map(id=>BYID[id]?BYID[id].ja:id).join('・')+'\n（配置タブで置けば練習に含まれます）');
   }
-  P.notes=buildTimeline({...f,seq:f.seq.filter(pressable)}).map(n=>({...n,state:0,offset:null}));
+  // seqとtimesを対で絞り込む（実録譜面のタイミング整合を保つ）
+  const keep=f.seq.map(pressable);
+  const fseq=f.seq.filter((_,i)=>keep[i]);
+  const ftimes=(f.times&&f.times.length===f.seq.length)?f.times.filter((_,i)=>keep[i]):undefined;
+  P.notes=buildTimeline({...f,seq:fseq,times:ftimes}).map(n=>({...n,state:0,offset:null}));
   if(!P.notes.length){alert('押せるスキルがありません。配置タブを確認してください');return;}
   P.mudra=[];P.kassatsu=false;P.rabbit=false;
   P.cur=0;P.ok=0;P.miss=0;P.ofs=[];P.on=true;P.done=false;
