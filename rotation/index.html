@@ -383,7 +383,7 @@ const SEED_BARS=[
    7542,36957,2241,7403,
    null,2264,2245,16489]},
  {name:'バー3', cells:[
-   2262,2255,2242,3563,
+   2262,2242,2255,3563,
    7402,2240,18805,18806,
    25778,36958,2260,18807]},
 ];
@@ -399,7 +399,12 @@ const SEED_FUMEN=[
 const LSKEY='rotdojo-v3';
 let S=load();
 function load(){
-  try{const j=JSON.parse(localStorage.getItem(LSKEY));if(j&&j.bars)return j;}catch(e){}
+  try{const j=JSON.parse(localStorage.getItem(LSKEY));if(j&&j.bars){
+    // 修復(2026-07-27): 初期シードの風断ち/旋風刃の並びミスを、未修正の状態にだけ適用して入れ替え
+    const b3=j.bars.find(b=>b.name==='バー3');
+    if(b3&&b3.cells[1]===2255&&b3.cells[2]===2242){b3.cells[1]=2242;b3.cells[2]=2255;}
+    return j;
+  }}catch(e){}
   return {bars:JSON.parse(JSON.stringify(SEED_BARS)), hideAoe:true, fumen:JSON.parse(JSON.stringify(SEED_FUMEN)),
     gcd:2.12, look:6, perfect:150, good:350, sound:false, iconSrc:'auto', iconTpl:'', rcOv:{}, alias:{}};
 }
@@ -447,6 +452,7 @@ document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()
   ['practice','fumen','layout','config'].forEach(t=>{
     document.getElementById('tab-'+t).style.display=(b.dataset.tab===t)?'':'none';
   });
+  if(b.dataset.tab==='practice')renderBars(false); // 配置タブでの変更を練習側にも反映
   if(b.dataset.tab==='layout')renderBars(true);
   if(b.dataset.tab==='fumen')renderFumenList();
   if(b.dataset.tab==='config')renderConfig();
